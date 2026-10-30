@@ -38,7 +38,23 @@ const login = async (req, res, next) => {
   }
 };
 
+const logout = async (req, res, next) => {
+  try {
+    // Supprimer le cookie contenant le refresh token
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    return res.status(200).json({ message: 'Déconnexion réussie.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  register,
-  login,
+    register,
+    login,
+    logout,
 };

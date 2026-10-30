@@ -9,4 +9,7 @@ router.post('/register', authController.register);
 // Route de connexion
 router.post('/login', authController.login);
 
+// Route de déconnexion
+router.post('/logout', authController.logout);
+
 module.exports = router;
