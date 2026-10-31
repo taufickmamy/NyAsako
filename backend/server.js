@@ -1,8 +1,8 @@
 // server.js
 const express = require('express');
+const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
@@ -33,6 +33,18 @@ app.use('/api/auth', authRoutes);
 // Route de test de base
 app.get('/', (req, res) => {
   res.json({ message: 'Bienvenue sur l\'API SaaS Project Management !' });
+});
+
+// Route inconnue
+app.use((req, res) => {
+  res.status(404).json({ message: 'Ressource introuvable.' });
+});
+
+// Gestion centralisée des erreurs (respecte error.statusCode)
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  if (statusCode >= 500) console.error(err);
+  res.status(statusCode).json({ message: err.message || 'Erreur interne du serveur.' });
 });
 
 // Gestion des connexions Socket.io en temps réel
