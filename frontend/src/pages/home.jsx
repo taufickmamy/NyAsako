@@ -1,5 +1,6 @@
+import { useState } from "react";
 import logo from "../assets/ASlogo.png";
-import ThemeToggle from "../components/themeToggle";
+import ThemeToggle from "../components/ThemeToggle";
 
 const columns = [
   {
@@ -176,39 +177,93 @@ function BoardPreview() {
 }
 
 export default function Home() {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white text-slate-700 dark:bg-slate-950 dark:text-slate-300">
       {/* Navbar */}
-      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <a href="/" aria-label="NyAsako, accueil">
-            <img src={logo} alt="NyAsako" className={`h-10 ${logoClass}`} />
-          </a>
-          <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex dark:text-slate-300">
-            <a href="#fonctionnalites" className="hover:text-brand-600 dark:hover:text-brand-400">
-              Fonctionnalités
-            </a>
-            <a href="#roles" className="hover:text-brand-600 dark:hover:text-brand-400">
-              Rôles
-            </a>
-          </div>
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <ThemeToggle />
-            <a
-              href="/login"
-              className="hidden px-3 py-2 text-brand-900 hover:text-brand-600 sm:inline-block dark:text-white dark:hover:text-brand-400"
-            >
-              Se connecter
-            </a>
-            <a
-              href="/register"
-              className="rounded-lg bg-brand-500 px-4 py-2 text-white hover:bg-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
-            >
-              Créer un compte
-            </a>
-          </div>
-        </nav>
-      </header>
+<header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+  <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+    <a href="/" aria-label="NyAsako, accueil">
+      <img src={logo} alt="NyAsako" className={`h-10 ${logoClass}`} />
+    </a>
+
+    <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex dark:text-slate-300">
+      <a href="#fonctionnalites" className="hover:text-brand-600 dark:hover:text-brand-400">
+        Fonctionnalités
+      </a>
+      <a href="#roles" className="hover:text-brand-600 dark:hover:text-brand-400">
+        Rôles
+      </a>
+    </div>
+
+    <div className="flex items-center gap-2 text-sm font-medium">
+      <ThemeToggle />
+      <a
+        href="/login"
+        className="hidden px-3 py-2 text-brand-900 hover:text-brand-600 sm:inline-block dark:text-white dark:hover:text-brand-400"
+      >
+        Se connecter
+      </a>
+      <a
+        href="/register"
+        className="hidden rounded-lg bg-brand-500 px-4 py-2 text-white hover:bg-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 sm:inline-block dark:focus-visible:ring-offset-slate-950"
+      >
+        Créer un compte
+      </a>
+
+      {/* Bokotra hamburger (ecran kely ihany) */}
+      <button
+        type="button"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        aria-expanded={menuOpen}
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 md:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {menuOpen ? (
+            <path d="M6 6l12 12M18 6L6 18" />
+          ) : (
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          )}
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  {/* Menu mivoaka rehefa kely ny ecran */}
+  {menuOpen && (
+    <div className="border-t border-slate-100 px-5 py-4 md:hidden dark:border-slate-800">
+      <div className="flex flex-col gap-1 text-sm font-medium">
+        <a
+          href="#fonctionnalites"
+          onClick={() => setMenuOpen(false)}
+          className="rounded-lg px-3 py-2.5 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Fonctionnalités
+        </a>
+        <a
+          href="#roles"
+          onClick={() => setMenuOpen(false)}
+          className="rounded-lg px-3 py-2.5 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Rôles
+        </a>
+        <a
+          href="/login"
+          className="rounded-lg px-3 py-2.5 text-brand-900 hover:bg-slate-100 sm:hidden dark:text-white dark:hover:bg-slate-800"
+        >
+          Se connecter
+        </a>
+        <a
+          href="/register"
+          className="mt-1 rounded-lg bg-brand-500 px-3 py-2.5 text-center text-white hover:bg-brand-600 sm:hidden"
+        >
+          Créer un compte
+        </a>
+      </div>
+    </div>
+  )}
+</header>
 
       {/* Hero */}
       <section className="bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950">
