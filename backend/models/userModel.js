@@ -1,7 +1,7 @@
 // models/userModel.js
 const db = require('../config/db');
 
-const createUser = async (name, email, hashedPassword, role = 'Developer') => {
+const createUser = async (name, email, hashedPassword, role = 'Développeur') => {
   const query = `
     INSERT INTO users (name, email, password, role)
     VALUES ($1, $2, $3, $4)
@@ -13,7 +13,7 @@ const createUser = async (name, email, hashedPassword, role = 'Developer') => {
 };
 
 const findUserByEmail = async (email) => {
-  const query = 'SELECT * FROM users WHERE email = $1;';
+  const query = 'SELECT * FROM users WHERE LOWER(email) = LOWER($1);';
   const { rows } = await db.query(query, [email]);
   return rows[0];
 };

@@ -6,7 +6,8 @@ const userModel = require('../models/userModel');
 const SALT_ROUNDS = 10;
 
 const register = async (name, email, password, role) => {
-  const existingUser = await userModel.findUserByEmail(email);
+  const normalizedEmail = email.trim().toLowerCase();
+  const existingUser = await userModel.findUserByEmail(normalizedEmail);
   if (existingUser) {
     const error = new Error('Cet email est déjà utilisé.');
     error.statusCode = 400;
@@ -14,11 +15,11 @@ const register = async (name, email, password, role) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-  return await userModel.createUser(name, email, hashedPassword, role);
+  return await userModel.createUser(name, normalizedEmail, hashedPassword, role);
 };
 
 const login = async (email, password) => {
-  const user = await userModel.findUserByEmail(email);
+  const user = await userModel.findUserByEmail(email.trim().toLowerCase());
   if (!user) {
     const error = new Error('Identifiants invalides.');
     error.statusCode = 401;
