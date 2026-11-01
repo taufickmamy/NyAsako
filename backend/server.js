@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -7,6 +6,7 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
+const projectRoutes = require('./routes/projectRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +29,7 @@ app.use(cors({
 
 // Routes API
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Route de test de base
 app.get('/', (req, res) => {
