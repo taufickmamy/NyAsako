@@ -24,7 +24,7 @@ export default function Register() {
     email: "",
     password: "",
     confirm: "",
-    role: "Developer",
+    role: "Développeur",
   });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");

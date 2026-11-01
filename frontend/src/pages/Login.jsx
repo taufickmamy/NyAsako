@@ -1,18 +1,23 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import FormField from "../components/FormField";
 import { loginRequest } from "../api/authApi";
+import { useAuth } from "../context/AuthContext";
+import { homePathFor } from "../utils/roles";
 
 export default function Login() {
+  const { user, login } = useAuth();
   const location = useLocation();
   const registered = location.state?.registered;
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // si l'utilisateur est déjà connecté, rediriger vers la page d'accueil correspondant à son rôle
+  if (user) return <Navigate to={homePathFor(user.role)} replace />;
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -29,7 +34,6 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setServerError("");
-    setSuccess(false);
 
     const found = validate();
     setErrors(found);
@@ -38,12 +42,14 @@ export default function Login() {
     setLoading(true);
     try {
       const { data } = await loginRequest(form);
-      console.log("Réponse du serveur :", data);
 
-      const token = data.accessToken || data.token;
-      if (token) localStorage.setItem("token", token);
+      if (!data?.user) {
+        setServerError("Réponse inattendue du serveur.");
+        return;
+      }
 
-      setSuccess(true);
+      // enregistrer les données de l'utilisateur et puis vers la page correspondante à son rôle
+      login(data);
     } catch (err) {
       if (err.response) {
         const d = err.response.data;
@@ -72,7 +78,7 @@ export default function Login() {
       }
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
-        {registered && !success && !serverError && (
+        {registered && !serverError && (
           <p role="status" className="rounded-lg bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
             Compte créé. Vous pouvez vous connecter.
           </p>
@@ -80,11 +86,6 @@ export default function Login() {
         {serverError && (
           <p role="alert" className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">
             {serverError}
-          </p>
-        )}
-        {success && (
-          <p role="status" className="rounded-lg bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-            Connexion réussie.
           </p>
         )}
 
