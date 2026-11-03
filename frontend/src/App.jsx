@@ -6,7 +6,8 @@ import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardPlaceholder from "./pages/DashboardPlaceholder";
 import ComingSoon from "./pages/ComingSoon";
-import { homePathFor } from "./utils/roles";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
 
 const ROLE_SPACES = [
   { key: "admin", path: "/admin", title: "Tableau de bord Admin" },
@@ -20,11 +21,14 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      {/**Route proteger selon leur role*/}
+
+      {/* Routes protégées selon le rôle */}
       {ROLE_SPACES.map(({ key, path, title }) => (
         <Route key={key} element={<ProtectedRoute allowedRoles={[key]} />}>
           <Route path={path} element={<AppLayout />}>
             <Route index element={<DashboardPlaceholder title={title} />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="*" element={<ComingSoon />} />
           </Route>
         </Route>
