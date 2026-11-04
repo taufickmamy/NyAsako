@@ -5,6 +5,7 @@ import { getProject } from "../api/projectsApi";
 import { getErrorMessage } from "../utils/errors";
 import { roleKey } from "../utils/roles";
 import { formatDate } from "../utils/dates";
+import KanbanBoard from "../components/KanbanBoard";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -64,9 +65,7 @@ export default function ProjectDetail() {
             {project.description || "Aucune description."}
           </p>
 
-          <div className="mt-8 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            Le tableau Kanban de ce projet apparaîtra ici.
-          </div>
+          <KanbanBoard projectId={project.id} />
         </>
       )}
     </div>
