@@ -51,7 +51,7 @@ const updateStatus = async (req, res, next) => {
       return res.status(400).json({ message: 'Le statut est requis.' });
     }
 
-    const updatedTask = await taskService.changeTaskStatus(id, status);
+    const updatedTask = await taskService.changeTaskStatus(projectId, id, status);
 
     // Notification en temps réel du changement de statut (Kanban drag & drop)
     const io = req.app.get('socketio');
@@ -67,8 +67,8 @@ const updateStatus = async (req, res, next) => {
 
 const updateTask = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const updatedTask = await taskService.editTask(id, req.body);
+    const { id, projectId } = req.params;
+    const updatedTask = await taskService.editTask(projectId, id, req.body);
     return res.status(200).json({ message: 'Tâche mise à jour avec succès.', task: updatedTask });
   } catch (error) {
     next(error);
@@ -77,8 +77,8 @@ const updateTask = async (req, res, next) => {
 
 const deleteTask = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    await taskService.removeTask(id);
+    const { id, projectId } = req.params;
+    await taskService.removeTask(projectId, id);
     return res.status(200).json({ message: 'Tâche supprimée avec succès.' });
   } catch (error) {
     next(error);

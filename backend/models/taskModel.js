@@ -27,39 +27,61 @@ const findTasksByProject = async (projectId) => {
 };
 
 // Mettre à jour le statut d'une tâche (drag & drop Kanban)
-const updateTaskStatus = async (taskId, status) => {
+const updateTaskStatus = async (taskId, status, projectId) => {
   const query = `
     UPDATE tasks
     SET status = $1
-    WHERE id = $2
+    WHERE id = $2 AND project_id = $3
     RETURNING *;
   `;
-  const { rows } = await db.query(query, [status, taskId]);
+  const { rows } = await db.query(query, [status, taskId, projectId]);
   return rows[0];
 };
 
-// Mettre à jour une tâche complète
-const updateTask = async (taskId, title, description, status, priority, assignedTo, dueDate) => {
+// Mettre à jour les champs fournis d'une tâche (permet d'effacer due_date)
+const updateTask = async (taskId, updates, projectId) => {
+  const mapping = {
+    title: 'title',
+    description: 'description',
+    status: 'status',
+    priority: 'priority',
+    assignedTo: 'assigned_to',
+    dueDate: 'due_date',
+  };
+
+  const values = [];
+  const assignments = [];
+
+  Object.entries(mapping).forEach(([key, column]) => {
+    if (Object.prototype.hasOwnProperty.call(updates, key)) {
+      values.push(updates[key]);
+      assignments.push(`${column} = $${values.length}`);
+    }
+  });
+
+  if (assignments.length === 0) {
+    const { rows } = await db.query(
+      'SELECT * FROM tasks WHERE id = $1 AND project_id = $2;',
+      [taskId, projectId]
+    );
+    return rows[0];
+  }
+
+  values.push(taskId, projectId);
   const query = `
     UPDATE tasks
-    SET title = COALESCE($1, title),
-        description = COALESCE($2, description),
-        status = COALESCE($3, status),
-        priority = COALESCE($4, priority),
-        assigned_to = COALESCE($5, assigned_to),
-        due_date = COALESCE($6, due_date)
-    WHERE id = $7
+    SET ${assignments.join(', ')}
+    WHERE id = $${values.length - 1} AND project_id = $${values.length}
     RETURNING *;
   `;
-  const values = [title, description, status, priority, assignedTo, dueDate, taskId];
   const { rows } = await db.query(query, values);
   return rows[0];
 };
 
 // Supprimer une tâche
-const deleteTask = async (taskId) => {
-  const query = 'DELETE FROM tasks WHERE id = $1 RETURNING *;';
-  const { rows } = await db.query(query, [taskId]);
+const deleteTask = async (taskId, projectId) => {
+  const query = 'DELETE FROM tasks WHERE id = $1 AND project_id = $2 RETURNING *;';
+  const { rows } = await db.query(query, [taskId, projectId]);
   return rows[0];
 };
 
