@@ -6,6 +6,7 @@ import { getErrorMessage } from "../utils/errors";
 import { roleKey } from "../utils/roles";
 import { formatDate } from "../utils/dates";
 import KanbanBoard from "../components/KanbanBoard";
+import DocumentSection from "../components/DocumentSection";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -66,6 +67,7 @@ export default function ProjectDetail() {
           </p>
 
           <KanbanBoard projectId={project.id} />
+          <DocumentSection projectId={project.id} />
         </>
       )}
     </div>
