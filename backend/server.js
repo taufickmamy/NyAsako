@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
@@ -9,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,11 +31,15 @@ app.use(cors({
   credentials: true,
 }));
 
+// Fichiers téléchargés (documents)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:projectId/tasks', taskRoutes);
 app.use('/api/projects/:projectId/documents', documentRoutes);
+app.use('/api/projects/:projectId/activities', activityRoutes);
 
 // Route de test de base
 app.get('/', (req, res) => {
