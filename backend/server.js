@@ -11,6 +11,7 @@ const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const globalActivityRoutes = require('./routes/globalActivityRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +41,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:projectId/tasks', taskRoutes);
 app.use('/api/projects/:projectId/documents', documentRoutes);
 app.use('/api/projects/:projectId/activities', activityRoutes);
+app.use('/api/activities', globalActivityRoutes);
 
 // Route de test de base
 app.get('/', (req, res) => {

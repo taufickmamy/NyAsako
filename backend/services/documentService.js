@@ -18,7 +18,7 @@ const uploadDocument = async (file, projectId, userId) => {
   await activityService.logActivity(
     projectId,
     userId,
-    `Nandefa rakitra vaovao: ${filename}`
+    `a téléversé le document « ${filename} »`
   );
 
   return newDoc;
@@ -28,7 +28,7 @@ const getDocuments = async (projectId) => {
   return await documentModel.findDocumentsByProject(projectId);
 };
 
-const removeDocument = async (id) => {
+const removeDocument = async (id, userId) => {
   const doc = await documentModel.deleteDocumentById(id);
   if (!doc) {
     throw new Error('Document non trouvé.');
@@ -38,6 +38,12 @@ const removeDocument = async (id) => {
   if (fs.existsSync(doc.file_path)) {
     fs.unlinkSync(doc.file_path);
   }
+
+  await activityService.logActivity(
+    doc.project_id,
+    userId,
+    `a supprimé le document « ${doc.filename} »`
+  );
 
   return doc;
 };

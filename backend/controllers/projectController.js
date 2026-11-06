@@ -35,7 +35,7 @@ const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, description } = req.body;
-    const updatedProject = await projectService.editProject(id, title, description);
+    const updatedProject = await projectService.editProject(id, title, description, req.user.id);
     return res.status(200).json({ message: 'Projet mis à jour avec succès.', project: updatedProject });
   } catch (error) {
     next(error);
@@ -45,7 +45,7 @@ const updateProject = async (req, res, next) => {
 const deleteProject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await projectService.removeProject(id);
+    await projectService.removeProject(id, req.user.id);
     return res.status(200).json({ message: 'Projet supprimé avec succès.' });
   } catch (error) {
     next(error);

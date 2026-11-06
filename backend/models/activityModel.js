@@ -26,7 +26,7 @@ const findActivitiesByProject = async (projectId) => {
 
 const getAllActivities = async () => {
   const query = `
-    SELECT a.*, u.name AS user_name, p.name AS project_name
+    SELECT a.*, u.name AS user_name, p.title AS project_name
     FROM activities a
     LEFT JOIN users u ON a.user_id = u.id
     LEFT JOIN projects p ON a.project_id = p.id

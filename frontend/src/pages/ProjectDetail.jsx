@@ -7,6 +7,7 @@ import { roleKey } from "../utils/roles";
 import { formatDate } from "../utils/dates";
 import KanbanBoard from "../components/KanbanBoard";
 import DocumentSection from "../components/DocumentSection";
+import ActivitySection from "../components/ActivitySection";
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -68,6 +69,7 @@ export default function ProjectDetail() {
 
           <KanbanBoard projectId={project.id} />
           <DocumentSection projectId={project.id} />
+          <ActivitySection projectId={project.id} />
         </>
       )}
     </div>

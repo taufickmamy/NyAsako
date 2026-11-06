@@ -1,4 +1,5 @@
 const projectModel = require('../models/projectModel');
+const activityService = require('./activityService');
 
 const createNewProject = async (title, description, createdBy) => {
   if (!title) {
@@ -6,7 +7,16 @@ const createNewProject = async (title, description, createdBy) => {
     error.statusCode = 400;
     throw error;
   }
-  return await projectModel.createProject(title, description, createdBy);
+
+  const project = await projectModel.createProject(title, description, createdBy);
+
+  await activityService.logActivity(
+    project.id,
+    createdBy,
+    `a créé le projet « ${project.title} »`
+  );
+
+  return project;
 };
 
 const getAllProjects = async () => {
@@ -23,23 +33,37 @@ const getProjectById = async (id) => {
   return project;
 };
 
-const editProject = async (id, title, description) => {
+const editProject = async (id, title, description, userId) => {
   const updatedProject = await projectModel.updateProject(id, title, description);
   if (!updatedProject) {
     const error = new Error('Projet non trouvé.');
     error.statusCode = 404;
     throw error;
   }
+
+  await activityService.logActivity(
+    id,
+    userId,
+    `a modifié le projet « ${updatedProject.title} »`
+  );
+
   return updatedProject;
 };
 
-const removeProject = async (id) => {
+const removeProject = async (id, userId) => {
   const deletedProject = await projectModel.deleteProject(id);
   if (!deletedProject) {
     const error = new Error('Projet non trouvé.');
     error.statusCode = 404;
     throw error;
   }
+
+  await activityService.logActivity(
+    id,
+    userId,
+    `a supprimé le projet « ${deletedProject.title} »`
+  );
+
   return deletedProject;
 };
 

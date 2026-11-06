@@ -50,7 +50,7 @@ export default function DocumentSection({ projectId }) {
     setError("");
     try {
       await uploadDocument(projectId, file);
-      setNotice("Fichier téléchargé avec succès.");
+      setNotice("Fichier ajouté avec succès.");
       e.target.value = null; // Reset input file
       loadDocuments();
     } catch (err) {

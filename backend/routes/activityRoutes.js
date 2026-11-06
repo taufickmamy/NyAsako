@@ -7,6 +7,5 @@ const authenticateToken = require('../middlewares/authMiddleware');
 router.use(authenticateToken);
 
 router.get('/', activityController.getProjectActivities);
-router.get('/activities', authenticateToken, activityController.getAllActivities);
 
 module.exports = router;

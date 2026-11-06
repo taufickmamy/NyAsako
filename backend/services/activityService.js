@@ -2,8 +2,14 @@
 const activityModel = require('../models/activityModel');
 
 const logActivity = async (projectId, userId, action) => {
-  // Azonao atao eto ny manampy fepetra fanampiny raha ilaina alohan'ny hitahirizana azy
-  return await activityModel.createActivity(projectId, userId, action);
+  // L'historique est accessoire : une erreur de journalisation ne doit pas
+  // faire échouer l'action métier en cours.
+  try {
+    return await activityModel.createActivity(projectId, userId, action);
+  } catch (error) {
+    console.error('Impossible d\'enregistrer l\'activité :', error.message);
+    return null;
+  }
 };
 
 const getActivitiesByProject = async (projectId) => {

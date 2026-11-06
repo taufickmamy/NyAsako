@@ -10,7 +10,7 @@ const uploadFile = async (req, res, next) => {
     const newDoc = await documentService.uploadDocument(file, projectId, uploadedBy);
 
     return res.status(201).json({ 
-      message: 'Fichier téléchargé avec succès.', 
+      message: 'Fichier ajouté avec succès.', 
       document: newDoc 
     });
   } catch (error) {
@@ -31,7 +31,7 @@ const getProjectDocuments = async (req, res, next) => {
 const deleteDocument = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await documentService.removeDocument(id);
+    await documentService.removeDocument(id, req.user.id);
     return res.status(200).json({ message: 'Document supprimé avec succès.' });
   } catch (error) {
     next(error);

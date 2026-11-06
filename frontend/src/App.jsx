@@ -8,6 +8,7 @@ import DashboardPlaceholder from "./pages/DashboardPlaceholder";
 import ComingSoon from "./pages/ComingSoon";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import ActivitiesPage from "./pages/Activities";
 
 const ROLE_SPACES = [
   { key: "admin", path: "/admin", title: "Tableau de bord Admin" },
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="*" element={<ComingSoon />} />
+            <Route path="activities" element={<ActivitiesPage />} />
           </Route>
         </Route>
       ))}
