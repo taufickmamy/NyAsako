@@ -10,7 +10,12 @@ const getActivitiesByProject = async (projectId) => {
   return await activityModel.findActivitiesByProject(projectId);
 };
 
+const getAllActivities = async () => {
+  return await activityModel.getAllActivities();
+};
+
 module.exports = {
   logActivity,
   getActivitiesByProject,
+  getAllActivities,
 };
