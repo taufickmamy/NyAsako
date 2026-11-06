@@ -3,6 +3,14 @@ import { getDocuments, uploadDocument, deleteDocument } from "../api/documentsAp
 import { getErrorMessage } from "../utils/errors";
 import { formatDate } from "../utils/dates";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const FILE_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+function getFileUrl(filePath) {
+  const normalized = String(filePath || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  return `${FILE_ORIGIN}/${normalized}`;
+}
+
 export default function DocumentSection({ projectId }) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,12 +128,12 @@ export default function DocumentSection({ projectId }) {
 
               <div className="flex items-center gap-3">
                 <a
-                  href={`/${doc.file_path}`}
+                  href={getFileUrl(doc.file_path)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-lg px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-500/10"
                 >
-                  Ouvrir
+                  Télécharger
                 </a>
 
                 {confirmDeleteId !== doc.id ? (
