@@ -24,7 +24,20 @@ const findActivitiesByProject = async (projectId) => {
   return rows;
 };
 
+const getAllActivities = async () => {
+  const query = `
+    SELECT a.*, u.name AS user_name, p.name AS project_name
+    FROM activities a
+    LEFT JOIN users u ON a.user_id = u.id
+    LEFT JOIN projects p ON a.project_id = p.id
+    ORDER BY a.created_at DESC;
+  `;
+  const { rows } = await db.query(query);
+  return rows;
+};
+
 module.exports = {
   createActivity,
   findActivitiesByProject,
+  getAllActivities,
 };
