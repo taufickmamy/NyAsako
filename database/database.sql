@@ -61,3 +61,14 @@ CREATE TABLE activities (
     action TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );[cite: 1]
+
+-- 7. Table des commentaires de tâches
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY,
+    task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id) ON DELETE SET NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_comments_task_id ON comments(task_id);
