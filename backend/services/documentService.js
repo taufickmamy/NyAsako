@@ -28,6 +28,10 @@ const getDocuments = async (projectId) => {
   return await documentModel.findDocumentsByProject(projectId);
 };
 
+const getAllDocuments = async () => {
+  return await documentModel.findAllDocuments();
+};
+
 const removeDocument = async (id, userId) => {
   const doc = await documentModel.deleteDocumentById(id);
   if (!doc) {
@@ -51,5 +55,6 @@ const removeDocument = async (id, userId) => {
 module.exports = {
   uploadDocument,
   getDocuments,
+  getAllDocuments,
   removeDocument,
 };

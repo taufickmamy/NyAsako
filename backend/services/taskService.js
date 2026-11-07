@@ -47,6 +47,20 @@ const getProjectTasks = async (projectId) => {
   return await taskModel.findTasksByProject(projectId);
 };
 
+const getAllTasks = async () => {
+  return await taskModel.findAllTasks();
+};
+
+const getTaskById = async (taskId) => {
+  const task = await taskModel.findTaskById(taskId);
+  if (!task) {
+    const error = new Error('Tâche non trouvée.');
+    error.statusCode = 404;
+    throw error;
+  }
+  return task;
+};
+
 const changeTaskStatus = async (projectId, taskId, status, userId) => {
   if (!status) {
     badRequest('Le statut est requis.');
@@ -122,6 +136,8 @@ const removeTask = async (projectId, taskId, userId) => {
 module.exports = {
   createNewTask,
   getProjectTasks,
+  getAllTasks,
+  getTaskById,
   changeTaskStatus,
   editTask,
   removeTask,

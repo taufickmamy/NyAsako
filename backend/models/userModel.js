@@ -24,8 +24,60 @@ const findUserById = async (id) => {
   return rows[0];
 };
 
+const findAllUsers = async () => {
+  const query = `
+    SELECT id, name, email, role, created_at
+    FROM users
+    ORDER BY created_at DESC;
+  `;
+  const { rows } = await db.query(query);
+  return rows;
+};
+
+const updateUser = async (id, updates) => {
+  const mapping = {
+    name: 'name',
+    email: 'email',
+    password: 'password',
+    role: 'role',
+  };
+
+  const values = [];
+  const assignments = [];
+
+  Object.entries(mapping).forEach(([key, column]) => {
+    if (Object.prototype.hasOwnProperty.call(updates, key)) {
+      values.push(updates[key]);
+      assignments.push(`${column} = $${values.length}`);
+    }
+  });
+
+  if (assignments.length === 0) {
+    return await findUserById(id);
+  }
+
+  values.push(id);
+  const query = `
+    UPDATE users
+    SET ${assignments.join(', ')}
+    WHERE id = $${values.length}
+    RETURNING id, name, email, role, created_at;
+  `;
+  const { rows } = await db.query(query, values);
+  return rows[0];
+};
+
+const deleteUser = async (id) => {
+  const query = 'DELETE FROM users WHERE id = $1 RETURNING id, name, email, role;';
+  const { rows } = await db.query(query, [id]);
+  return rows[0];
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
   findUserById,
+  findAllUsers,
+  updateUser,
+  deleteUser,
 };

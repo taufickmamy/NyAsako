@@ -85,9 +85,43 @@ const deleteTask = async (taskId, projectId) => {
   return rows[0];
 };
 
+// Récupérer toutes les tâches (vue globale, tous projets confondus)
+const findAllTasks = async () => {
+  const query = `
+    SELECT t.*,
+           u.name AS assigned_to_name,
+           u.email AS assigned_to_email,
+           p.title AS project_title
+    FROM tasks t
+    LEFT JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN projects p ON t.project_id = p.id
+    ORDER BY t.created_at DESC;
+  `;
+  const { rows } = await db.query(query);
+  return rows;
+};
+
+// Récupérer une tâche par son identifiant (vue globale)
+const findTaskById = async (taskId) => {
+  const query = `
+    SELECT t.*,
+           u.name AS assigned_to_name,
+           u.email AS assigned_to_email,
+           p.title AS project_title
+    FROM tasks t
+    LEFT JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN projects p ON t.project_id = p.id
+    WHERE t.id = $1;
+  `;
+  const { rows } = await db.query(query, [taskId]);
+  return rows[0];
+};
+
 module.exports = {
   createTask,
   findTasksByProject,
+  findAllTasks,
+  findTaskById,
   updateTaskStatus,
   updateTask,
   deleteTask,

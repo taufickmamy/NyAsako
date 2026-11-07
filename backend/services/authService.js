@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 
 const SALT_ROUNDS = 10;
+// L'inscription publique ne permet pas de créer un Administrateur.
+const PUBLIC_ROLES = ['Développeur', 'Manager'];
 
 const register = async (name, email, password, role) => {
   const normalizedEmail = email.trim().toLowerCase();
@@ -14,8 +16,9 @@ const register = async (name, email, password, role) => {
     throw error;
   }
 
+  const safeRole = PUBLIC_ROLES.includes(role) ? role : 'Développeur';
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-  return await userModel.createUser(name, normalizedEmail, hashedPassword, role);
+  return await userModel.createUser(name, normalizedEmail, hashedPassword, safeRole);
 };
 
 const login = async (email, password) => {

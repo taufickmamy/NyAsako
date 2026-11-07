@@ -24,6 +24,20 @@ const findDocumentsByProject = async (projectId) => {
   return rows;
 };
 
+const findAllDocuments = async () => {
+  const query = `
+    SELECT d.*,
+           u.name AS uploader_name,
+           p.title AS project_title
+    FROM documents d
+    LEFT JOIN users u ON d.uploaded_by = u.id
+    LEFT JOIN projects p ON d.project_id = p.id
+    ORDER BY d.created_at DESC;
+  `;
+  const { rows } = await db.query(query);
+  return rows;
+};
+
 const findDocumentById = async (id) => {
   const query = 'SELECT * FROM documents WHERE id = $1;';
   const { rows } = await db.query(query, [id]);
@@ -39,6 +53,7 @@ const deleteDocumentById = async (id) => {
 module.exports = {
   saveDocument,
   findDocumentsByProject,
+  findAllDocuments,
   findDocumentById,
   deleteDocumentById,
 };

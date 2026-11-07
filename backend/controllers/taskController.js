@@ -1,5 +1,6 @@
 // controllers/taskController.js
 const taskService = require('../services/taskService');
+const { sendSuccess, sendError } = require('../utils/response');
 
 const createTask = async (req, res, next) => {
   try {
@@ -7,7 +8,7 @@ const createTask = async (req, res, next) => {
     const { title, description, status, priority, assignedTo, dueDate } = req.body;
 
     if (!title) {
-      return res.status(400).json({ message: 'Le titre de la tâche est requis.' });
+      return sendError(res, 400, 'Le titre de la tâche est requis.', []);
     }
 
     const task = await taskService.createNewTask({
@@ -26,7 +27,7 @@ const createTask = async (req, res, next) => {
       io.to(`project_${projectId}`).emit('task_created', task);
     }
 
-    return res.status(201).json({ message: 'Tâche créée avec succès.', task });
+    return sendSuccess(res, 201, 'Tâche créée avec succès.', task);
   } catch (error) {
     next(error);
   }
@@ -36,7 +37,26 @@ const getTasks = async (req, res, next) => {
   try {
     const { projectId } = req.params;
     const tasks = await taskService.getProjectTasks(projectId);
-    return res.status(200).json({ tasks });
+    return sendSuccess(res, 200, 'Tâches récupérées avec succès.', tasks);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllTasks = async (req, res, next) => {
+  try {
+    const tasks = await taskService.getAllTasks();
+    return sendSuccess(res, 200, 'Tâches récupérées avec succès.', tasks);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const task = await taskService.getTaskById(id);
+    return sendSuccess(res, 200, 'Tâche récupérée avec succès.', task);
   } catch (error) {
     next(error);
   }
@@ -48,7 +68,7 @@ const updateStatus = async (req, res, next) => {
     const { status } = req.body;
 
     if (!status) {
-      return res.status(400).json({ message: 'Le statut est requis.' });
+      return sendError(res, 400, 'Le statut est requis.', []);
     }
 
     const updatedTask = await taskService.changeTaskStatus(projectId, id, status, req.user.id);
@@ -59,7 +79,7 @@ const updateStatus = async (req, res, next) => {
       io.to(`project_${projectId}`).emit('task_status_updated', updatedTask);
     }
 
-    return res.status(200).json({ message: 'Statut de la tâche mis à jour.', task: updatedTask });
+    return sendSuccess(res, 200, 'Statut de la tâche mis à jour.', updatedTask);
   } catch (error) {
     next(error);
   }
@@ -69,7 +89,7 @@ const updateTask = async (req, res, next) => {
   try {
     const { id, projectId } = req.params;
     const updatedTask = await taskService.editTask(projectId, id, req.body, req.user.id);
-    return res.status(200).json({ message: 'Tâche mise à jour avec succès.', task: updatedTask });
+    return sendSuccess(res, 200, 'Tâche mise à jour avec succès.', updatedTask);
   } catch (error) {
     next(error);
   }
@@ -79,7 +99,7 @@ const deleteTask = async (req, res, next) => {
   try {
     const { id, projectId } = req.params;
     await taskService.removeTask(projectId, id, req.user.id);
-    return res.status(200).json({ message: 'Tâche supprimée avec succès.' });
+    return sendSuccess(res, 200, 'Tâche supprimée avec succès.', null);
   } catch (error) {
     next(error);
   }
@@ -88,6 +108,8 @@ const deleteTask = async (req, res, next) => {
 module.exports = {
   createTask,
   getTasks,
+  getAllTasks,
+  getTask,
   updateStatus,
   updateTask,
   deleteTask,
