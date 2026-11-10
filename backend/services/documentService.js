@@ -2,6 +2,9 @@
 const documentModel = require('../models/documentModel');
 const activityService = require('./activityService');
 const fs = require('fs');
+const path = require('path');
+
+const uploadDir = path.join(__dirname, '..', 'uploads');
 
 const uploadDocument = async (file, projectId, userId) => {
   if (!file) {
@@ -9,7 +12,7 @@ const uploadDocument = async (file, projectId, userId) => {
   }
 
   const filename = file.originalname;
-  const filePath = file.path;
+  const filePath = `/uploads/${file.filename}`;
 
   // 1. Enregistrement du document dans la base de données
   const newDoc = await documentModel.saveDocument(filename, filePath, projectId, userId);
@@ -39,8 +42,9 @@ const removeDocument = async (id, userId) => {
   }
 
   //supprimer le fichier du système de fichiers
-  if (fs.existsSync(doc.file_path)) {
-    fs.unlinkSync(doc.file_path);
+  const absolutePath = path.join(uploadDir, path.basename(doc.file_path || ''));
+  if (doc.file_path && fs.existsSync(absolutePath)) {
+    fs.unlinkSync(absolutePath);
   }
 
   await activityService.logActivity(

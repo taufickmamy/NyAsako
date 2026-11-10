@@ -58,6 +58,19 @@ const updateMe = async (req, res, next) => {
   }
 };
 
+const uploadProfilePicture = async (req, res, next) => {
+  try {
+    const userId = req.user.id; 
+    const file = req.file;
+
+    const updatedUser = await userService.updateProfilePicture(userId, file);
+
+    return sendSuccess(res, 200, 'Photo de profil mise à jour avec succès.', { user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   listUsers,
   createUser,
@@ -65,4 +78,5 @@ module.exports = {
   deleteUser,
   getMe,
   updateMe,
+  uploadProfilePicture
 };

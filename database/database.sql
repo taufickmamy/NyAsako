@@ -10,7 +10,9 @@ CREATE TABLE users (
     email VARCHAR(150) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role user_role DEFAULT 'Développeur',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    profile_picture VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );[cite: 1]
 
 -- 2. Table des projets[cite: 1]

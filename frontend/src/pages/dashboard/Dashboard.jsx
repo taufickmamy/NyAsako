@@ -101,7 +101,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <PageHeader
         eyebrow={todayLabel}
-        title={`Bonjour, ${firstName} 👋`}
+        title={`Bonjour ${firstName}`}
         description={`Vous êtes connecté en tant que ${roleLabel(user?.role)}. Voici l'état de votre espace de travail.`}
         actions={
           canManageProjects(user) && (

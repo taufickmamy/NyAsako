@@ -132,6 +132,16 @@ const deleteUserById = async (id, actor) => {
   return await userModel.deleteUser(id);
 };
 
+
+const updateProfilePicture = async (userId, file) => {
+  if (!file) {
+    throw httpError('Aucune photo fournie.', 400);
+  }
+
+  const filePath = `/uploads/${file.filename}`;
+
+  return await userModel.updateProfilePicture(userId, filePath);
+};
 module.exports = {
   ROLES,
   listUsers,
@@ -140,4 +150,5 @@ module.exports = {
   updateUserById,
   updateCurrentUser,
   deleteUserById,
+  updateProfilePicture,
 };

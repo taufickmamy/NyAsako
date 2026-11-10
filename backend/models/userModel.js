@@ -73,6 +73,17 @@ const deleteUser = async (id) => {
   return rows[0];
 };
 
+const updateProfilePicture = async (userId, filePath) => {
+  const query = `
+    UPDATE users 
+    SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2
+    RETURNING id, name, email, role, profile_picture;
+  `;
+  const { rows } = await db.query(query, [filePath, userId]);
+  return rows[0];
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
@@ -80,4 +91,5 @@ module.exports = {
   findAllUsers,
   updateUser,
   deleteUser,
+  updateProfilePicture,
 };
