@@ -5,7 +5,7 @@ const createUser = async (name, email, hashedPassword, role = 'Développeur') =>
   const query = `
     INSERT INTO users (name, email, password, role)
     VALUES ($1, $2, $3, $4)
-    RETURNING id, name, email, role, created_at;
+    RETURNING id, name, email, role, profile_picture, created_at;
   `;
   const values = [name, email, hashedPassword, role];
   const { rows } = await db.query(query, values);
@@ -19,14 +19,14 @@ const findUserByEmail = async (email) => {
 };
 
 const findUserById = async (id) => {
-  const query = 'SELECT id, name, email, role, created_at FROM users WHERE id = $1;';
+  const query = 'SELECT id, name, email, role, profile_picture, created_at FROM users WHERE id = $1;';
   const { rows } = await db.query(query, [id]);
   return rows[0];
 };
 
 const findAllUsers = async () => {
   const query = `
-    SELECT id, name, email, role, created_at
+    SELECT id, name, email, role, profile_picture, created_at
     FROM users
     ORDER BY created_at DESC;
   `;
@@ -61,7 +61,7 @@ const updateUser = async (id, updates) => {
     UPDATE users
     SET ${assignments.join(', ')}
     WHERE id = $${values.length}
-    RETURNING id, name, email, role, created_at;
+    RETURNING id, name, email, role, profile_picture, created_at;
   `;
   const { rows } = await db.query(query, values);
   return rows[0];

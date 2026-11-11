@@ -65,7 +65,7 @@ const uploadProfilePicture = async (req, res, next) => {
 
     const updatedUser = await userService.updateProfilePicture(userId, file);
 
-    return sendSuccess(res, 200, 'Photo de profil mise à jour avec succès.', { user: updatedUser });
+    return sendSuccess(res, 200, 'Photo de profil mise à jour avec succès.', updatedUser);
   } catch (error) {
     next(error);
   }

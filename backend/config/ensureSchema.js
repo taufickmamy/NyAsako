@@ -136,6 +136,12 @@ const backfillProjectWorkspaces = async () => {
 };
 
 const ensureSchema = async () => {
+  // Photo de profil (compatibilité avec les bases créées avant son ajout).
+  await db.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(255);
+  `);
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS comments (
       id SERIAL PRIMARY KEY,
