@@ -1,3 +1,4 @@
+import { assetUrl } from "../../utils/assets";
 import { initialsOf } from "../../utils/roles";
 
 const SIZES = {
@@ -26,8 +27,23 @@ function colorFor(name) {
   return COLORS[sum % COLORS.length];
 }
 
-/** Avatar à initiales, couleur déterministe à partir du nom. */
-export default function Avatar({ name, size = "md", className = "", ring = false }) {
+/** Avatar : photo de profil si disponible, sinon initiales (couleur déterministe). */
+export default function Avatar({ name, src, size = "md", className = "", ring = false }) {
+  const image = assetUrl(src);
+
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={name || "Photo de profil"}
+        title={name}
+        className={`inline-block shrink-0 rounded-full object-cover ${SIZES[size]} ${
+          ring ? "ring-2 ring-white dark:ring-slate-900" : ""
+        } ${className}`}
+      />
+    );
+  }
+
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white ${SIZES[size]} ${colorFor(name)} ${

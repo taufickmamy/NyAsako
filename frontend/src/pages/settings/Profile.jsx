@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Pencil } from "lucide-react"
+import { useState, useRef } from "react";
 import Avatar from "../../components/common/Avatar";
 import Badge, { RoleBadge } from "../../components/common/Badge";
 import Button from "../../components/common/Button";
@@ -6,7 +7,7 @@ import Icon from "../../components/common/Icon";
 import Input from "../../components/common/Input";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuth } from "../../context/AuthContext";
-import { updateMe } from "../../services/userService";
+import { updateMe, updateAvatar } from "../../services/userService";
 import { getErrorMessage } from "../../utils/errors";
 import { notify } from "../../utils/notifications";
 import { roleLabel } from "../../utils/roles";
@@ -20,12 +21,43 @@ export default function Profile() {
     password: "",
     confirmPassword: "",
   });
+  
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  const fileInputRef = useRef(null);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function handleChange(event) {
     setForm((previous) => ({ ...previous, [event.target.name]: event.target.value }));
+  }
+
+
+  function handleFileChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setAvatarPreview(URL.createObjectURL(file)); // afficher un aperçu de l'image sélectionnée
+    }
+  }
+
+  async function handleAvatarUpload() {
+    if (!selectedFile) return;
+    setAvatarLoading(true);
+    try {
+      const updated = await updateAvatar(selectedFile);
+      updateUser(updated);
+      setSelectedFile(null);
+      setAvatarPreview(null);
+      notify.success("Photo de profil mise à jour avec succès.");
+    } catch (err) {
+      notify.error(getErrorMessage(err));
+    } finally {
+      setAvatarLoading(false);
+    }
   }
 
   function validate() {
@@ -77,18 +109,59 @@ export default function Profile() {
         description="Gérez vos informations personnelles et votre mot de passe."
       />
 
-      <section className="flex flex-col items-start gap-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center dark:bg-slate-900 dark:ring-slate-800">
-        <Avatar name={user?.name} size="xl" />
-        <div className="min-w-0">
+      {/* Fizarana Sary Profil */}
+      <section className="flex flex-col items-start gap-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center dark:bg-slate-900 dark:ring-slate-800">
+        <div className="relative">
+          {avatarPreview ? (
+            <img
+              src={avatarPreview}
+              alt="Avatar preview"
+              className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500"
+            />
+          ) : (
+            <Avatar name={user?.name} src={user?.profile_picture} size="xl" />
+          )}
+          
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-0 right-0 rounded-full bg-brand-600 p-1.5 text-white shadow hover:bg-brand-700"
+            title="Changer la photo"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
+        />
+
+        <div className="min-w-0 flex-1">
           <h2 className="truncate text-lg font-bold text-brand-900 dark:text-white">{user?.name}</h2>
           <p className="truncate text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <RoleBadge role={user?.role} size="md" />
             <Badge tone="slate">{roleLabel(user?.role)}</Badge>
           </div>
+
+          {selectedFile && (
+            <div className="mt-4 flex items-center gap-3">
+              <Button size="sm" onClick={handleAvatarUpload} loading={avatarLoading}>
+                Enregistrer la photo
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => { setSelectedFile(null); setAvatarPreview(null); }}>
+                Annuler
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
+      {/* Formulaire de modification*/}
       <form
         onSubmit={handleSubmit}
         noValidate

@@ -86,7 +86,7 @@ export default function Topbar({ onMenuClick }) {
         <Dropdown
           trigger={
             <span className="flex items-center gap-2 rounded-lg p-1 pr-2 hover:bg-slate-100 dark:hover:bg-slate-800">
-              <Avatar name={user?.name} size="sm" />
+              <Avatar name={user?.name} src={user?.profile_picture} size="sm" />
               <span className="hidden text-left sm:block">
                 <span className="block max-w-[9rem] truncate text-sm font-semibold leading-tight text-brand-900 dark:text-white">
                   {user?.name}

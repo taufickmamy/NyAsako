@@ -81,7 +81,7 @@ export default function Sidebar({ open, onClose }) {
 
       <div className="border-t border-slate-200 p-3 dark:border-slate-800">
         <div className="mb-2 flex items-center gap-3 rounded-xl px-2 py-2">
-          <Avatar name={user?.name} size="sm" />
+          <Avatar name={user?.name} src={user?.profile_picture} size="sm" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-brand-900 dark:text-white">
               {user?.name}

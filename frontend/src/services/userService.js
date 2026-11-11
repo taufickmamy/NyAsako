@@ -35,3 +35,16 @@ export async function updateMe(payload) {
   const { data } = await apiClient.patch("/users/me", payload);
   return unwrapOne(data, "user");
 }
+
+export async function updateAvatar(file) {
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const { data } = await apiClient.post("/users/me/avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return unwrapOne(data, "user");
+}
