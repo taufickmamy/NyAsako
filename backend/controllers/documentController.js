@@ -8,7 +8,9 @@ const uploadFile = async (req, res, next) => {
     const uploadedBy = req.user.id;
     const file = req.file;
 
-    const newDoc = await documentService.uploadDocument(file, projectId, uploadedBy);
+    const newDoc = await documentService.uploadDocument(
+      file, projectId, uploadedBy, req.app.get('socketio')
+    );
 
     return sendSuccess(res, 201, 'Fichier ajouté avec succès.', newDoc);
   } catch (error) {

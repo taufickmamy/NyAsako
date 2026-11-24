@@ -1,5 +1,6 @@
 // controllers/authController.js
 const authService = require('../services/authService');
+const passwordResetService = require('../services/passwordResetService');
 const { sendSuccess, sendError } = require('../utils/response');
 
 const register = async (req, res, next) => {
@@ -54,8 +55,47 @@ const logout = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
+      return sendError(res, 400, 'Une adresse e-mail valide est requise.', []);
+    }
+
+    const { devLink } = await passwordResetService.requestPasswordReset(email);
+    const data = process.env.NODE_ENV === 'production' ? null : { devLink };
+    return sendSuccess(
+      res,
+      200,
+      'Si un compte est associé à cette adresse, un e-mail de réinitialisation a été envoyé.',
+      data
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, email, password } = req.body;
+    if (!token) {
+      return sendError(res, 400, 'Jeton de réinitialisation invalide.', []);
+    }
+    if (!password || String(password).length < 8) {
+      return sendError(res, 400, 'Le mot de passe doit contenir au moins 8 caractères.', []);
+    }
+
+    await passwordResetService.resetPassword({ token, email, password });
+    return sendSuccess(res, 200, 'Mot de passe réinitialisé avec succès.', null);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
+  forgotPassword,
+  resetPassword,
 };

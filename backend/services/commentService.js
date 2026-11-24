@@ -2,6 +2,7 @@
 const commentModel = require('../models/commentModel');
 const taskModel = require('../models/taskModel');
 const activityService = require('./activityService');
+const notificationService = require('./notificationService');
 
 const httpError = (message, statusCode) => {
   const error = new Error(message);
@@ -22,7 +23,7 @@ const getTaskComments = async (taskId) => {
   return await commentModel.findCommentsByTask(taskId);
 };
 
-const addComment = async (taskId, userId, content) => {
+const addComment = async (taskId, userId, content, io) => {
   const task = await ensureTask(taskId);
   const trimmedContent = String(content || '').trim();
 
@@ -41,6 +42,14 @@ const addComment = async (taskId, userId, content) => {
     userId,
     `a commenté la tâche « ${task.title} »`
   );
+
+  if (task.assigned_to) {
+    await notificationService.notify({
+      recipientIds: [task.assigned_to], actorId: userId, type: 'task_comment',
+      message: `Nouveau commentaire sur la tâche « ${task.title} »`,
+      projectId: task.project_id, taskId: task.id, io,
+    });
+  }
 
   return comment;
 };

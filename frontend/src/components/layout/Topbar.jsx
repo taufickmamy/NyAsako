@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Avatar from "../common/Avatar";
 import Dropdown from "../common/Dropdown";
 import Icon from "../common/Icon";
 import ThemeToggle from "../common/ThemeToggle";
 import { findNavItem } from "../../config/navigation";
+import NotificationDropdown from "../common/NotificationDropdown";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspace } from "../../context/WorkspaceContext";
 import { isAdmin, roleLabel } from "../../utils/roles";
@@ -72,14 +73,7 @@ export default function Topbar({ onMenuClick }) {
       </form>
 
       <div className="ml-auto flex items-center gap-1.5 md:ml-2">
-        <Link
-          to="/activities"
-          aria-label="Voir les activités"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          <Icon name="bell" className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-500 ring-2 ring-white dark:ring-slate-900" />
-        </Link>
+        <NotificationDropdown />
 
         <ThemeToggle />
 

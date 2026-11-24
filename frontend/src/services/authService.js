@@ -27,3 +27,19 @@ export async function getMe() {
   const { data } = await apiClient.get("/users/me", { silent: true });
   return unwrapOne(data, "user");
 }
+
+/** Demande un lien de réinitialisation du mot de passe. */
+export async function requestPasswordReset(email) {
+  const { data } = await apiClient.post("/auth/forgot-password", { email });
+  return data;
+}
+
+/** Réinitialisation du mot de passe avec le token reçu par e-mail. */
+export async function resetPassword({ token, email, password }) {
+  const { data } = await apiClient.post("/auth/reset-password", {
+    token,
+    email,
+    password,
+  });
+  return data;
+}

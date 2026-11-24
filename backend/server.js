@@ -3,6 +3,7 @@ const cors = require('cors');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
@@ -19,6 +20,7 @@ const globalTaskRoutes = require('./routes/globalTaskRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const globalDocumentRoutes = require('./routes/globalDocumentRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const ensureSchema = require('./config/ensureSchema');
 
 const app = express();
@@ -64,6 +66,7 @@ apiRouter.use('/tasks/:taskId/comments', commentRoutes);
 apiRouter.use('/tasks', globalTaskRoutes);
 apiRouter.use('/documents', globalDocumentRoutes);
 apiRouter.use('/activities', globalActivityRoutes);
+apiRouter.use('/notifications', notificationRoutes);
 
 app.use('/api/v1', apiRouter);
 
@@ -89,8 +92,24 @@ app.use((err, req, res, next) => {
   sendError(res, statusCode, err.message || 'Erreur interne du serveur.', errors);
 });
 
+// Authentification Socket.io : chaque connexion rejoint sa salle utilisateur.
+io.use((socket, next) => {
+  const token =
+    socket.handshake.auth?.token ||
+    (socket.handshake.headers.authorization || '').split(' ')[1];
+
+  if (!token) return next(new Error('Jeton manquant.'));
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return next(new Error('Jeton invalide ou expiré.'));
+    socket.userId = user.id;
+    next();
+  });
+});
+
 // Gestion des connexions Socket.io en temps réel
 io.on('connection', (socket) => {
+  socket.join(`user_${socket.userId}`);
   console.log(`⚡ Un utilisateur s'est connecté : ${socket.id}`);
 
   // Exemple d'écoute d'un événement (ex: déplacement d'une tâche dans le Kanban)

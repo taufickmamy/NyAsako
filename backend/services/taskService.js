@@ -1,6 +1,7 @@
 // services/taskService.js
 const taskModel = require('../models/taskModel');
 const activityService = require('./activityService');
+const notificationService = require('./notificationService');
 
 const STATUSES = ['À faire', 'En cours', 'Terminé'];
 const PRIORITIES = ['Faible', 'Moyenne', 'Élevée'];
@@ -23,7 +24,7 @@ const validatePriority = (priority) => {
   }
 };
 
-const createNewTask = async (taskData, userId) => {
+const createNewTask = async (taskData, userId, io) => {
   const { title, description, status, priority, projectId, assignedTo, dueDate } = taskData;
 
   if (!title || !String(title).trim()) {
@@ -39,6 +40,13 @@ const createNewTask = async (taskData, userId) => {
     userId,
     `a créé la tâche « ${task.title} »`
   );
+
+  if (assignedTo) {
+    await notificationService.notify({
+      recipientIds: [assignedTo], actorId: userId, type: 'task_assigned',
+      message: `Vous avez été assigné à la tâche « ${task.title} »`, projectId, taskId: task.id, io,
+    });
+  }
 
   return task;
 };
@@ -61,12 +69,18 @@ const getTaskById = async (taskId) => {
   return task;
 };
 
-const changeTaskStatus = async (projectId, taskId, status, userId) => {
+const changeTaskStatus = async (projectId, taskId, status, userId, io) => {
   if (!status) {
     badRequest('Le statut est requis.');
   }
   validateStatus(status);
 
+  const previousTask = await taskModel.findTaskById(taskId);
+  if (!previousTask) {
+    const error = new Error('Tâche non trouvée.');
+    error.statusCode = 404;
+    throw error;
+  }
   const updatedTask = await taskModel.updateTaskStatus(taskId, status, projectId);
   if (!updatedTask) {
     const error = new Error('Tâche non trouvée.');
@@ -80,10 +94,18 @@ const changeTaskStatus = async (projectId, taskId, status, userId) => {
     `a déplacé la tâche « ${updatedTask.title} » vers « ${status} »`
   );
 
+  if (previousTask.status !== updatedTask.status && updatedTask.assigned_to) {
+    await notificationService.notify({
+      recipientIds: [updatedTask.assigned_to], actorId: userId, type: 'task_status',
+      message: `Le statut de « ${updatedTask.title} » est passé à « ${updatedTask.status} »`,
+      projectId, taskId: updatedTask.id, io,
+    });
+  }
+
   return updatedTask;
 };
 
-const editTask = async (projectId, taskId, taskData, userId) => {
+const editTask = async (projectId, taskId, taskData, userId, io) => {
   const { title, description, status, priority, assignedTo, dueDate } = taskData;
 
   if (title !== undefined && !String(title).trim()) {
@@ -100,6 +122,12 @@ const editTask = async (projectId, taskId, taskData, userId) => {
   if (assignedTo !== undefined) updates.assignedTo = assignedTo;
   if (dueDate !== undefined) updates.dueDate = dueDate;
 
+  const previousTask = await taskModel.findTaskById(taskId);
+  if (!previousTask) {
+    const error = new Error('Tâche non trouvée.');
+    error.statusCode = 404;
+    throw error;
+  }
   const updatedTask = await taskModel.updateTask(taskId, updates, projectId);
   if (!updatedTask) {
     const error = new Error('Tâche non trouvée.');
@@ -112,6 +140,20 @@ const editTask = async (projectId, taskId, taskData, userId) => {
     userId,
     `a modifié la tâche « ${updatedTask.title} »`
   );
+
+  if (assignedTo && String(assignedTo) !== String(previousTask.assigned_to)) {
+    await notificationService.notify({
+      recipientIds: [assignedTo], actorId: userId, type: 'task_assigned',
+      message: `Vous avez été assigné à la tâche « ${updatedTask.title} »`, projectId, taskId: updatedTask.id, io,
+    });
+  }
+  if (status && status !== previousTask.status && updatedTask.assigned_to) {
+    await notificationService.notify({
+      recipientIds: [updatedTask.assigned_to], actorId: userId, type: 'task_status',
+      message: `Le statut de « ${updatedTask.title} » est passé à « ${updatedTask.status} »`,
+      projectId, taskId: updatedTask.id, io,
+    });
+  }
 
   return updatedTask;
 };

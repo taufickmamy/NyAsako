@@ -16,7 +16,9 @@ const createComment = async (req, res, next) => {
   try {
     const { taskId } = req.params;
     const { content } = req.body;
-    const comment = await commentService.addComment(taskId, req.user.id, content);
+    const comment = await commentService.addComment(
+      taskId, req.user.id, content, req.app.get('socketio')
+    );
     return sendSuccess(res, 201, 'Commentaire ajouté avec succès.', comment);
   } catch (error) {
     next(error);

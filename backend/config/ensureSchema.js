@@ -156,6 +156,39 @@ const ensureSchema = async () => {
     CREATE INDEX IF NOT EXISTS idx_comments_task_id ON comments(task_id);
   `);
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      recipient_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      actor_id INT REFERENCES users(id) ON DELETE SET NULL,
+      type VARCHAR(40) NOT NULL,
+      message TEXT NOT NULL,
+      project_id INT REFERENCES projects(id) ON DELETE CASCADE,
+      task_id INT REFERENCES tasks(id) ON DELETE CASCADE,
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient_created
+    ON notifications(recipient_id, created_at DESC);
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id
+    ON password_reset_tokens(user_id);
+  `);
+
   await createWorkspacesSchema();
   await backfillProjectWorkspaces();
 };

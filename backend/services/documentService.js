@@ -1,12 +1,13 @@
 // services/documentService.js
 const documentModel = require('../models/documentModel');
 const activityService = require('./activityService');
+const notificationService = require('./notificationService');
 const fs = require('fs');
 const path = require('path');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
 
-const uploadDocument = async (file, projectId, userId) => {
+const uploadDocument = async (file, projectId, userId, io) => {
   if (!file) {
     throw new Error('Aucun fichier n\'a été envoyé.');
   }
@@ -23,6 +24,12 @@ const uploadDocument = async (file, projectId, userId) => {
     userId,
     `a téléversé le document « ${filename} »`
   );
+
+  await notificationService.notifyProjectMembers({
+    projectId, actorId: userId, type: 'document_uploaded',
+    message: `Nouveau document ajouté au projet : « ${filename} »`,
+    io,
+  });
 
   return newDoc;
 };

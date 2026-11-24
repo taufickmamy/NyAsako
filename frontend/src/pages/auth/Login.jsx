@@ -128,6 +128,13 @@ export default function Login() {
           required
         />
 
+        <Link
+          to="/forgot-password"
+          className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          Mot de passe oublié ?
+        </Link>
+
         <Button type="submit" loading={loading} className="w-full" size="lg">
           Se connecter
         </Button>

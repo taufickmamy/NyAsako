@@ -4,8 +4,10 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Activities from "./pages/activities/Activities";
 import AdminUsers from "./pages/admin/Users";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ResetPassword from "./pages/auth/ResetPassword";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Documents from "./pages/documents/Documents";
 import ProjectCreate from "./pages/projects/ProjectCreate";
@@ -26,6 +28,8 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
