@@ -1,4 +1,3 @@
-// controllers/documentController.js
 const documentService = require('../services/documentService');
 const { sendSuccess } = require('../utils/response');
 
@@ -9,7 +8,7 @@ const uploadFile = async (req, res, next) => {
     const file = req.file;
 
     const newDoc = await documentService.uploadDocument(
-      file, projectId, uploadedBy, req.app.get('socketio')
+      file, projectId, uploadedBy, req.app.get('socketio'), req.workspaceId
     );
 
     return sendSuccess(res, 201, 'Fichier ajouté avec succès.', newDoc);
@@ -21,7 +20,7 @@ const uploadFile = async (req, res, next) => {
 const getProjectDocuments = async (req, res, next) => {
   try {
     const { projectId } = req.params;
-    const documents = await documentService.getDocuments(projectId);
+    const documents = await documentService.getDocuments(projectId, req.workspaceId);
     return sendSuccess(res, 200, 'Documents récupérés avec succès.', documents);
   } catch (error) {
     next(error);
@@ -30,7 +29,7 @@ const getProjectDocuments = async (req, res, next) => {
 
 const getAllDocuments = async (req, res, next) => {
   try {
-    const documents = await documentService.getAllDocuments();
+    const documents = await documentService.getAllDocuments(req.workspaceId);
     return sendSuccess(res, 200, 'Documents récupérés avec succès.', documents);
   } catch (error) {
     next(error);
@@ -40,7 +39,7 @@ const getAllDocuments = async (req, res, next) => {
 const deleteDocument = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await documentService.removeDocument(id, req.user.id);
+    await documentService.removeDocument(id, req.user.id, req.workspaceId);
     return sendSuccess(res, 200, 'Document supprimé avec succès.', null);
   } catch (error) {
     next(error);

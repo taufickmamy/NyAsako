@@ -1,9 +1,21 @@
 const db = require('../config/db');
 const notificationModel = require('../models/notificationModel');
 
+const resolveWorkspaceId = async (workspaceId, projectId) => {
+  if (workspaceId) return workspaceId;
+  if (!projectId) return null;
+
+  const { rows } = await db.query(
+    'SELECT workspace_id FROM projects WHERE id = $1;',
+    [projectId]
+  );
+  return rows[0]?.workspace_id || null;
+};
+
 const notify = async (payload) => {
   try {
-    const notifications = await notificationModel.createNotifications(payload);
+    const workspaceId = await resolveWorkspaceId(payload.workspaceId, payload.projectId);
+    const notifications = await notificationModel.createNotifications({ ...payload, workspaceId });
     const io = payload.io;
     if (io) {
       notifications.forEach((notification) => {
@@ -11,12 +23,13 @@ const notify = async (payload) => {
       });
     }
   } catch (error) {
-    // A notification is auxiliary; it must not cancel the underlying action.
     console.error('Impossible de créer les notifications :', error.message);
   }
 };
 
-const notifyProjectMembers = async ({ projectId, actorId, type, message, taskId, io }) => {
+const notifyProjectMembers = async ({
+  projectId, actorId, type, message, taskId, io, workspaceId,
+}) => {
   try {
     const { rows } = await db.query(
       `SELECT DISTINCT member_id FROM (
@@ -32,13 +45,16 @@ const notifyProjectMembers = async ({ projectId, actorId, type, message, taskId,
        ) members WHERE member_id IS NOT NULL;`,
       [projectId]
     );
-    await notify({ recipientIds: rows.map((row) => row.member_id), actorId, type, message, projectId, taskId, io });
+    await notify({
+      recipientIds: rows.map((row) => row.member_id), actorId, type, message, projectId, taskId, io,
+      workspaceId,
+    });
   } catch (error) {
     console.error('Impossible de trouver les membres à notifier :', error.message);
   }
 };
 
-const listForUser = (userId) => notificationModel.findForUser(userId);
-const markRead = (id, userId) => notificationModel.markRead(id, userId);
+const listForUser = (userId, workspaceId = null) => notificationModel.findForUser(userId, workspaceId);
+const markRead = (id, userId, workspaceId = null) => notificationModel.markRead(id, userId, workspaceId);
 
 module.exports = { notify, notifyProjectMembers, listForUser, markRead };

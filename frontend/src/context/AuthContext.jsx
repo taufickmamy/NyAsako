@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import * as authService from "../services/authService";
+import { WORKSPACE_STORAGE_KEY } from "../utils/constants";
 import { hasAnyRole, roleKey } from "../utils/roles";
 
 const AuthContext = createContext(null);
@@ -35,6 +36,7 @@ function clearStorage() {
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(WORKSPACE_STORAGE_KEY);
 }
 
 export function AuthProvider({ children }) {

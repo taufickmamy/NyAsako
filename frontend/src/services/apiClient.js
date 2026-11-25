@@ -1,4 +1,5 @@
 import axios from "axios";
+import { WORKSPACE_STORAGE_KEY } from "../utils/constants";
 import { HTTP_ERROR_MESSAGES, isSessionError } from "../utils/errors";
 import { notify } from "../utils/notifications";
 
@@ -23,11 +24,15 @@ export function clearSession() {
   localStorage.removeItem("user");
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem(WORKSPACE_STORAGE_KEY);
 }
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  const workspaceId = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+  if (workspaceId) config.headers["X-Workspace-Id"] = workspaceId;
   return config;
 });
 

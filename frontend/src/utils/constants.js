@@ -4,6 +4,8 @@
  * (énumérations PostgreSQL : task_status, task_priority, user_role).
  */
 
+export const WORKSPACE_STORAGE_KEY = "nyasako_active_workspace_id";
+
 export const TASK_STATUSES = [
   { value: "À faire", label: "À faire", tone: "slate", dot: "bg-slate-400" },
   { value: "En cours", label: "En cours", tone: "amber", dot: "bg-amber-400" },
@@ -33,6 +35,21 @@ export const MANAGER_ASSIGNABLE_ROLES = [
   { value: ROLES.MANAGER, label: "Manager" },
   { value: ROLES.DEVELOPER, label: "Développeur" },
 ];
+
+export const WORKSPACE_ROLE_OPTIONS = [
+  { value: "admin", label: "Administrateur" },
+  { value: "manager", label: "Manager" },
+  { value: "member", label: "Membre" },
+];
+
+export const WORKSPACE_ASSIGNABLE_ROLES = [
+  { value: "manager", label: "Manager" },
+  { value: "member", label: "Membre" },
+];
+
+export function workspaceRoleLabel(role) {
+  return WORKSPACE_ROLE_OPTIONS.find((option) => option.value === role)?.label || String(role || "Membre");
+}
 
 /** Statuts et priorités sous forme de simples tableaux de valeurs. */
 export const STATUS_VALUES = TASK_STATUSES.map((s) => s.value);

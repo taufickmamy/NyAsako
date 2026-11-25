@@ -100,6 +100,7 @@ export default function Input({
 export function Textarea({
   label,
   id,
+  name,
   error,
   hint,
   rows = 4,
@@ -121,7 +122,7 @@ export function Textarea({
       )}
       <textarea
         id={fieldId}
-        name={fieldId}
+        name={name || fieldId}
         rows={rows}
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined}
@@ -146,6 +147,7 @@ export function Textarea({
 export function Select({
   label,
   id,
+  name,
   error,
   hint,
   options = [],
@@ -168,7 +170,7 @@ export function Select({
       )}
       <select
         id={fieldId}
-        name={fieldId}
+        name={name || fieldId}
         aria-invalid={error ? "true" : "false"}
         aria-describedby={error ? `${fieldId}-error` : undefined}
         className={fieldClasses(error, className)}

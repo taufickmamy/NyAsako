@@ -1,32 +1,23 @@
 const projectModel = require('../models/projectModel');
-const userModel = require('../models/userModel');
 const activityService = require('./activityService');
 const workspaceService = require('./workspaceService');
 
+const httpError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
 const createNewProject = async (title, description, createdBy, workspaceId = null) => {
-  if (!title) {
-    const error = new Error('Le titre du projet est requis.');
-    error.statusCode = 400;
-    throw error;
+  if (!title || !String(title).trim()) {
+    throw httpError('Le titre du projet est requis.', 400);
   }
 
-  // Si un workspace est fourni, l'utilisateur doit en être membre.
-  // Sinon on rattache le projet au workspace par défaut du créateur.
-  let targetWorkspaceId = workspaceId;
-
-  if (targetWorkspaceId) {
-    await workspaceService.getWorkspaceById(targetWorkspaceId, createdBy);
-  } else {
-    const creator = await userModel.findUserById(createdBy);
-    const workspace = await workspaceService.getOrCreateDefaultWorkspace(
-      createdBy,
-      creator?.name
-    );
-    targetWorkspaceId = workspace.id;
-  }
+  const workspace = await workspaceService.resolveActiveWorkspace(createdBy, workspaceId);
+  const targetWorkspaceId = workspace.id;
 
   const project = await projectModel.createProject(
-    title,
+    String(title).trim(),
     description,
     createdBy,
     targetWorkspaceId
@@ -35,41 +26,33 @@ const createNewProject = async (title, description, createdBy, workspaceId = nul
   await activityService.logActivity(
     project.id,
     createdBy,
-    `a créé le projet « ${project.title} »`
+    `a créé le projet « ${project.title} »`,
+    targetWorkspaceId
   );
 
   return projectModel.findProjectById(project.id);
 };
 
 const getAllProjects = async (userId, workspaceId = null) => {
-  if (workspaceId) {
-    await workspaceService.getWorkspaceById(workspaceId, userId);
-    return await projectModel.findAllProjects(workspaceId);
-  }
-
-  return await projectModel.findAllProjects();
+  const workspace = await workspaceService.resolveActiveWorkspace(userId, workspaceId);
+  return await projectModel.findAllProjects(workspace.id);
 };
 
-const getProjectById = async (id) => {
+const getProjectById = async (id, userId, workspaceId = null) => {
+  const workspace = await workspaceService.resolveActiveWorkspace(userId, workspaceId);
   const project = await projectModel.findProjectById(id);
-  if (!project) {
-    const error = new Error('Projet non trouvé.');
-    error.statusCode = 404;
-    throw error;
+  if (!project || Number(project.workspace_id) !== Number(workspace.id)) {
+    throw httpError('Projet non trouvé.', 404);
   }
   return project;
 };
 
 const editProject = async (id, title, description, userId, workspaceId = null) => {
-  if (workspaceId) {
-    await workspaceService.getWorkspaceById(workspaceId, userId);
-  }
+  await getProjectById(id, userId, workspaceId);
 
-  const updatedProject = await projectModel.updateProject(id, title, description, workspaceId);
+  const updatedProject = await projectModel.updateProject(id, title, description, null);
   if (!updatedProject) {
-    const error = new Error('Projet non trouvé.');
-    error.statusCode = 404;
-    throw error;
+    throw httpError('Projet non trouvé.', 404);
   }
 
   await activityService.logActivity(
@@ -81,19 +64,20 @@ const editProject = async (id, title, description, userId, workspaceId = null) =
   return projectModel.findProjectById(id);
 };
 
-const removeProject = async (id, userId) => {
-  const deletedProject = await projectModel.deleteProject(id);
-  if (!deletedProject) {
-    const error = new Error('Projet non trouvé.');
-    error.statusCode = 404;
-    throw error;
-  }
+const removeProject = async (id, userId, workspaceId = null) => {
+  const project = await getProjectById(id, userId, workspaceId);
 
   await activityService.logActivity(
     id,
     userId,
-    `a supprimé le projet « ${deletedProject.title} »`
+    `a supprimé le projet « ${project.title} »`,
+    project.workspace_id
   );
+
+  const deletedProject = await projectModel.deleteProject(id);
+  if (!deletedProject) {
+    throw httpError('Projet non trouvé.', 404);
+  }
 
   return deletedProject;
 };

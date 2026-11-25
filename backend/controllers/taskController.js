@@ -1,4 +1,3 @@
-// controllers/taskController.js
 const taskService = require('../services/taskService');
 const { sendSuccess, sendError } = require('../utils/response');
 
@@ -19,9 +18,8 @@ const createTask = async (req, res, next) => {
       projectId,
       assignedTo,
       dueDate,
-    }, req.user.id, req.app.get('socketio'));
+    }, req.user.id, req.app.get('socketio'), req.workspaceId);
 
-    // Notification en temps réel via Socket.io
     const io = req.app.get('socketio');
     if (io) {
       io.to(`project_${projectId}`).emit('task_created', task);
@@ -36,7 +34,7 @@ const createTask = async (req, res, next) => {
 const getTasks = async (req, res, next) => {
   try {
     const { projectId } = req.params;
-    const tasks = await taskService.getProjectTasks(projectId);
+    const tasks = await taskService.getProjectTasks(projectId, req.workspaceId);
     return sendSuccess(res, 200, 'Tâches récupérées avec succès.', tasks);
   } catch (error) {
     next(error);
@@ -45,7 +43,7 @@ const getTasks = async (req, res, next) => {
 
 const getAllTasks = async (req, res, next) => {
   try {
-    const tasks = await taskService.getAllTasks();
+    const tasks = await taskService.getAllTasks(req.workspaceId);
     return sendSuccess(res, 200, 'Tâches récupérées avec succès.', tasks);
   } catch (error) {
     next(error);
@@ -55,7 +53,7 @@ const getAllTasks = async (req, res, next) => {
 const getTask = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const task = await taskService.getTaskById(id);
+    const task = await taskService.getTaskById(id, req.workspaceId);
     return sendSuccess(res, 200, 'Tâche récupérée avec succès.', task);
   } catch (error) {
     next(error);
@@ -72,10 +70,9 @@ const updateStatus = async (req, res, next) => {
     }
 
     const updatedTask = await taskService.changeTaskStatus(
-      projectId, id, status, req.user.id, req.app.get('socketio')
+      projectId, id, status, req.user.id, req.app.get('socketio'), req.workspaceId
     );
 
-    // Notification en temps réel du changement de statut (Kanban drag & drop)
     const io = req.app.get('socketio');
     if (io) {
       io.to(`project_${projectId}`).emit('task_status_updated', updatedTask);
@@ -91,7 +88,7 @@ const updateTask = async (req, res, next) => {
   try {
     const { id, projectId } = req.params;
     const updatedTask = await taskService.editTask(
-      projectId, id, req.body, req.user.id, req.app.get('socketio')
+      projectId, id, req.body, req.user.id, req.app.get('socketio'), req.workspaceId
     );
     return sendSuccess(res, 200, 'Tâche mise à jour avec succès.', updatedTask);
   } catch (error) {
@@ -102,7 +99,7 @@ const updateTask = async (req, res, next) => {
 const deleteTask = async (req, res, next) => {
   try {
     const { id, projectId } = req.params;
-    await taskService.removeTask(projectId, id, req.user.id);
+    await taskService.removeTask(projectId, id, req.user.id, req.workspaceId);
     return sendSuccess(res, 200, 'Tâche supprimée avec succès.', null);
   } catch (error) {
     next(error);

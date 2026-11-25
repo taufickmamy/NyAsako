@@ -21,6 +21,11 @@ const commentRoutes = require('./routes/commentRoutes');
 const globalDocumentRoutes = require('./routes/globalDocumentRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const authenticateToken = require('./middlewares/authMiddleware');
+const {
+  requireActiveWorkspace,
+  requireProjectWorkspace,
+} = require('./middlewares/workspaceScope');
 const ensureSchema = require('./config/ensureSchema');
 
 const app = express();
@@ -58,15 +63,15 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/team', teamRoutes);
 apiRouter.use('/workspaces', workspaceRoutes);
-apiRouter.use('/projects', projectRoutes);
-apiRouter.use('/projects/:projectId/tasks', taskRoutes);
-apiRouter.use('/projects/:projectId/documents', documentRoutes);
-apiRouter.use('/projects/:projectId/activities', activityRoutes);
-apiRouter.use('/tasks/:taskId/comments', commentRoutes);
-apiRouter.use('/tasks', globalTaskRoutes);
-apiRouter.use('/documents', globalDocumentRoutes);
-apiRouter.use('/activities', globalActivityRoutes);
-apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/projects', authenticateToken, requireActiveWorkspace, projectRoutes);
+apiRouter.use('/projects/:projectId/tasks', authenticateToken, requireProjectWorkspace, taskRoutes);
+apiRouter.use('/projects/:projectId/documents', authenticateToken, requireProjectWorkspace, documentRoutes);
+apiRouter.use('/projects/:projectId/activities', authenticateToken, requireProjectWorkspace, activityRoutes);
+apiRouter.use('/tasks/:taskId/comments', authenticateToken, requireActiveWorkspace, commentRoutes);
+apiRouter.use('/tasks', authenticateToken, requireActiveWorkspace, globalTaskRoutes);
+apiRouter.use('/documents', authenticateToken, requireActiveWorkspace, globalDocumentRoutes);
+apiRouter.use('/activities', authenticateToken, requireActiveWorkspace, globalActivityRoutes);
+apiRouter.use('/notifications', authenticateToken, requireActiveWorkspace, notificationRoutes);
 
 app.use('/api/v1', apiRouter);
 

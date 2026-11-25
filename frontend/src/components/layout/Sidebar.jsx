@@ -17,7 +17,7 @@ const linkClass = ({ isActive }) =>
 /** Barre latérale de navigation (desktop fixe, mobile en tiroir). */
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
-  const { workspace, memberCount } = useWorkspace();
+  const { workspace, memberCount, currentRole } = useWorkspace();
   const sections = getNavigationFor(user);
 
   return (
@@ -48,10 +48,10 @@ export default function Sidebar({ open, onClose }) {
       <div className="mx-3 mb-2 rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-800/60">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Espace</p>
         <p className="mt-0.5 truncate text-sm font-semibold text-brand-900 dark:text-white">
-          {workspace.name}
+          {workspace?.name}
         </p>
         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-          {memberCount} membre{memberCount > 1 ? "s" : ""}
+          {memberCount} membre{memberCount > 1 ? "s" : ""} · {currentRole}
         </p>
       </div>
 

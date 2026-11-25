@@ -10,21 +10,21 @@ const httpError = (message, statusCode) => {
   return error;
 };
 
-const ensureTask = async (taskId) => {
-  const task = await taskModel.findTaskById(taskId);
+const ensureTask = async (taskId, workspaceId = null) => {
+  const task = await taskModel.findTaskById(taskId, workspaceId);
   if (!task) {
     throw httpError('Tâche non trouvée.', 404);
   }
   return task;
 };
 
-const getTaskComments = async (taskId) => {
-  await ensureTask(taskId);
+const getTaskComments = async (taskId, workspaceId = null) => {
+  await ensureTask(taskId, workspaceId);
   return await commentModel.findCommentsByTask(taskId);
 };
 
-const addComment = async (taskId, userId, content, io) => {
-  const task = await ensureTask(taskId);
+const addComment = async (taskId, userId, content, io, workspaceId = null) => {
+  const task = await ensureTask(taskId, workspaceId);
   const trimmedContent = String(content || '').trim();
 
   if (!trimmedContent) {
@@ -47,14 +47,15 @@ const addComment = async (taskId, userId, content, io) => {
     await notificationService.notify({
       recipientIds: [task.assigned_to], actorId: userId, type: 'task_comment',
       message: `Nouveau commentaire sur la tâche « ${task.title} »`,
-      projectId: task.project_id, taskId: task.id, io,
+      projectId: task.project_id, taskId: task.id, io, workspaceId,
     });
   }
 
   return comment;
 };
 
-const removeComment = async (taskId, commentId, user) => {
+const removeComment = async (taskId, commentId, user, workspaceId = null) => {
+  await ensureTask(taskId, workspaceId);
   const comment = await commentModel.findCommentById(commentId);
 
   if (!comment || String(comment.task_id) !== String(taskId)) {

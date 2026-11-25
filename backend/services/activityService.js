@@ -1,23 +1,26 @@
-// services/activityService.js
 const activityModel = require('../models/activityModel');
+const projectModel = require('../models/projectModel');
 
-const logActivity = async (projectId, userId, action) => {
-  // L'historique est accessoire : une erreur de journalisation ne doit pas
-  // faire échouer l'action métier en cours.
+const logActivity = async (projectId, userId, action, workspaceId = null) => {
   try {
-    return await activityModel.createActivity(projectId, userId, action);
+    let targetWorkspaceId = workspaceId;
+    if (!targetWorkspaceId && projectId) {
+      const project = await projectModel.findProjectById(projectId);
+      targetWorkspaceId = project?.workspace_id || null;
+    }
+    return await activityModel.createActivity(projectId, userId, action, targetWorkspaceId);
   } catch (error) {
     console.error('Impossible d\'enregistrer l\'activité :', error.message);
     return null;
   }
 };
 
-const getActivitiesByProject = async (projectId) => {
-  return await activityModel.findActivitiesByProject(projectId);
+const getActivitiesByProject = async (projectId, workspaceId = null) => {
+  return await activityModel.findActivitiesByProject(projectId, workspaceId);
 };
 
-const getAllActivities = async () => {
-  return await activityModel.getAllActivities();
+const getAllActivities = async (workspaceId = null) => {
+  return await activityModel.getAllActivities(workspaceId);
 };
 
 module.exports = {

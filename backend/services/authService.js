@@ -2,6 +2,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
+const { findOrCreateDefaultWorkspace } = require('../config/ensureSchema');
 
 const SALT_ROUNDS = 10;
 // L'inscription publique ne permet pas de créer un Administrateur.
@@ -18,7 +19,9 @@ const register = async (name, email, password, role) => {
 
   const safeRole = PUBLIC_ROLES.includes(role) ? role : 'Développeur';
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-  return await userModel.createUser(name, normalizedEmail, hashedPassword, safeRole);
+  const user = await userModel.createUser(name, normalizedEmail, hashedPassword, safeRole);
+  await findOrCreateDefaultWorkspace(user.id, user.name);
+  return user;
 };
 
 const login = async (email, password) => {

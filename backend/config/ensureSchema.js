@@ -70,7 +70,7 @@ const createWorkspacesSchema = async () => {
     CHECK (role IN ('owner', 'admin', 'manager', 'member'));
   `);
 
-  for (const table of ['projects', 'tasks', 'activities', 'notifications']) {
+  for (const table of ['projects', 'tasks', 'activities', 'notifications', 'documents']) {
     await db.query(`
       ALTER TABLE ${table}
       ADD COLUMN IF NOT EXISTS workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE;
@@ -181,6 +181,34 @@ const backfillProjectWorkspaces = async () => {
   }
 };
 
+const ensureUserWorkspaces = async () => {
+  const { rows: users } = await db.query('SELECT id, name FROM users ORDER BY id;');
+  for (const user of users) {
+    await findOrCreateDefaultWorkspace(user.id, user.name);
+  }
+};
+
+const backfillEntityWorkspaces = async () => {
+  for (const table of ['tasks', 'activities', 'notifications', 'documents']) {
+    await db.query(
+      `UPDATE ${table} entity
+       SET workspace_id = project.workspace_id
+       FROM projects project
+       WHERE entity.project_id = project.id AND entity.workspace_id IS NULL;`
+    );
+  }
+
+  await db.query(`
+    UPDATE notifications n
+    SET workspace_id = (
+      SELECT MIN(wm.workspace_id)
+      FROM workspace_members wm
+      WHERE wm.user_id = n.recipient_id
+    )
+    WHERE n.workspace_id IS NULL;
+  `);
+};
+
 const ensureSchema = async () => {
   // Photo de profil (compatibilité avec les bases créées avant son ajout).
   await db.query(`
@@ -236,7 +264,9 @@ const ensureSchema = async () => {
   `);
 
   await createWorkspacesSchema();
+  await ensureUserWorkspaces();
   await backfillProjectWorkspaces();
+  await backfillEntityWorkspaces();
 };
 
 module.exports = ensureSchema;

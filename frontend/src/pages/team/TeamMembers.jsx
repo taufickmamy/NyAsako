@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Avatar from "../../components/common/Avatar";
-import Badge, { RoleBadge } from "../../components/common/Badge";
+import Badge from "../../components/common/Badge";
 import Button from "../../components/common/Button";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
 import Dropdown from "../../components/common/Dropdown";
@@ -14,17 +14,23 @@ import { SectionLoader } from "../../components/common/Loader";
 import MemberFormModal from "../../components/team/MemberFormModal";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspace } from "../../context/WorkspaceContext";
-import { MANAGER_ASSIGNABLE_ROLES, ROLE_OPTIONS } from "../../utils/constants";
+import {
+  WORKSPACE_ASSIGNABLE_ROLES,
+  WORKSPACE_ROLE_OPTIONS,
+  workspaceRoleLabel,
+} from "../../utils/constants";
 import { formatDate } from "../../utils/dates";
 import { notify } from "../../utils/notifications";
-import { isAdmin, roleKey } from "../../utils/roles";
 
 export default function TeamMembers() {
   const { user } = useAuth();
   const {
+    workspace,
     members,
     membersLoading,
     membersError,
+    currentRole,
+    canManageMembers,
     refreshMembers,
     addMember,
     updateMember,
@@ -38,9 +44,6 @@ export default function TeamMembers() {
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const admin = isAdmin(user);
-  const roleOptions = admin ? ROLE_OPTIONS : MANAGER_ASSIGNABLE_ROLES;
-
   useEffect(() => {
     if (searchParams.get("invite") === "1") {
       setAddOpen(true);
@@ -50,12 +53,17 @@ export default function TeamMembers() {
     }
   }, [searchParams, setSearchParams]);
 
+  const roleOptions =
+    currentRole === "owner" || currentRole === "admin"
+      ? WORKSPACE_ROLE_OPTIONS
+      : WORKSPACE_ASSIGNABLE_ROLES;
+
   const stats = useMemo(
     () => ({
       total: members.length,
-      admins: members.filter((member) => roleKey(member.role) === "admin").length,
-      managers: members.filter((member) => roleKey(member.role) === "manager").length,
-      developers: members.filter((member) => roleKey(member.role) === "developer").length,
+      admins: members.filter((member) => member.role === "admin").length,
+      managers: members.filter((member) => member.role === "manager").length,
+      developers: members.filter((member) => member.role === "member").length,
     }),
     [members]
   );
@@ -67,37 +75,43 @@ export default function TeamMembers() {
       (member) =>
         String(member.name || "").toLowerCase().includes(term) ||
         String(member.email || "").toLowerCase().includes(term) ||
-        String(member.role || "").toLowerCase().includes(term)
+        workspaceRoleLabel(member.role).toLowerCase().includes(term)
     );
   }, [members, query]);
 
+  function userIdOf(member) {
+    return member.user_id ?? member.id;
+  }
+
   function canEditMember(member) {
-    if (String(member.id) === String(user?.id)) return false;
-    if (admin) return true;
-    return roleKey(member.role) !== "admin";
+    if (!canManageMembers) return false;
+    if (member.role === "owner") return false;
+    if (currentRole === "manager" && member.role === "admin") return false;
+    if (String(userIdOf(member)) === String(user?.id)) return false;
+    return true;
   }
 
   async function handleAdd(payload) {
     await addMember(payload);
     setAddOpen(false);
-    notify.success("Membre ajouté à l'équipe.");
+    notify.success("Membre ajouté à l'espace de travail.");
   }
 
   async function handleUpdate(payload) {
-    await updateMember(editing.id, payload);
+    await updateMember(userIdOf(editing), payload);
     setEditing(null);
-    notify.success("Membre mis à jour avec succès.");
+    notify.success("Rôle du membre mis à jour avec succès.");
   }
 
   async function handleDelete() {
     if (!toDelete) return;
     setDeleting(true);
     try {
-      await removeMember(toDelete.id);
+      await removeMember(userIdOf(toDelete));
       setToDelete(null);
-      notify.success("Membre retiré de l'équipe.");
+      notify.success("Membre retiré de l'espace de travail.");
     } catch {
-      // Erreur déjà signalée par l'intercepteur Axios.
+      notify.error("Impossible de retirer ce membre.");
     } finally {
       setDeleting(false);
     }
@@ -107,11 +121,13 @@ export default function TeamMembers() {
     <div className="space-y-6">
       <PageHeader
         title="Équipe"
-        description="Gérez les membres de votre espace de travail et leurs rôles."
+        description={`Gérez les membres de « ${workspace?.name || "votre espace"} » et leurs rôles.`}
         actions={
-          <Button onClick={() => setAddOpen(true)} icon={<Icon name="plus" className="h-4 w-4" />}>
-            Ajouter un membre
-          </Button>
+          canManageMembers && (
+            <Button onClick={() => setAddOpen(true)} icon={<Icon name="plus" className="h-4 w-4" />}>
+              Ajouter un membre
+            </Button>
+          )
         }
       />
 
@@ -119,7 +135,7 @@ export default function TeamMembers() {
         <StatCard label="Membres" value={stats.total} icon="users" tone="brand" />
         <StatCard label="Administrateurs" value={stats.admins} icon="shield" tone="brand" />
         <StatCard label="Managers" value={stats.managers} icon="briefcase" tone="amber" />
-        <StatCard label="Développeurs" value={stats.developers} icon="tasks" tone="emerald" />
+        <StatCard label="Membres" value={stats.developers} icon="tasks" tone="emerald" />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -159,7 +175,7 @@ export default function TeamMembers() {
               : "Essayez un autre nom, e-mail ou rôle."
           }
           action={
-            members.length === 0 ? (
+            members.length === 0 && canManageMembers ? (
               <Button onClick={() => setAddOpen(true)} icon={<Icon name="plus" className="h-4 w-4" />}>
                 Ajouter un membre
               </Button>
@@ -175,12 +191,12 @@ export default function TeamMembers() {
       {!membersLoading && !membersError && filtered.length > 0 && (
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200 dark:divide-slate-800 dark:bg-slate-900 dark:ring-slate-800">
           {filtered.map((member) => {
-            const isSelf = String(member.id) === String(user?.id);
+            const isSelf = String(userIdOf(member)) === String(user?.id);
             const editable = canEditMember(member);
 
             return (
               <li
-                key={member.id}
+                key={member.id || userIdOf(member)}
                 className="flex flex-col gap-3 p-4 transition hover:bg-slate-50/70 sm:flex-row sm:items-center dark:hover:bg-slate-800/40"
               >
                 <Avatar name={member.name} size="md" />
@@ -194,10 +210,12 @@ export default function TeamMembers() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                  <RoleBadge role={member.role} />
-                  {member.created_at && (
+                  <Badge tone={member.role === "owner" ? "violet" : "blue"}>
+                    {workspaceRoleLabel(member.role)}
+                  </Badge>
+                  {(member.joined_at || member.created_at) && (
                     <span className="hidden text-xs text-slate-400 lg:inline">
-                      Depuis le {formatDate(member.created_at)}
+                      Depuis le {formatDate(member.joined_at || member.created_at)}
                     </span>
                   )}
 
@@ -208,7 +226,7 @@ export default function TeamMembers() {
                       items={[
                         { label: "Modifier le rôle", icon: "edit", onClick: () => setEditing(member) },
                         { separator: true },
-                        { label: "Retirer de l'équipe", icon: "trash", danger: true, onClick: () => setToDelete(member) },
+                        { label: "Retirer de l'espace", icon: "trash", danger: true, onClick: () => setToDelete(member) },
                       ]}
                       label={`Actions pour ${member.name}`}
                     />
@@ -227,7 +245,7 @@ export default function TeamMembers() {
           roleOptions={roleOptions}
           title="Ajouter un membre"
           submitLabel="Ajouter"
-          requirePassword
+          mode="workspace"
           onSubmit={handleAdd}
           onClose={() => setAddOpen(false)}
         />
@@ -239,7 +257,7 @@ export default function TeamMembers() {
           roleOptions={roleOptions}
           title={`Modifier ${editing.name}`}
           submitLabel="Enregistrer"
-          requirePassword={false}
+          mode="role"
           onSubmit={handleUpdate}
           onClose={() => setEditing(null)}
         />
@@ -248,7 +266,7 @@ export default function TeamMembers() {
       {toDelete && (
         <ConfirmDialog
           title="Retirer le membre"
-          description={`Voulez-vous vraiment retirer « ${toDelete.name} » de l'équipe ? Son compte sera supprimé et ses tâches resteront dans les projets.`}
+          description={`Voulez-vous vraiment retirer « ${toDelete.name} » de cet espace de travail ? Son compte reste actif et il n'aura plus accès aux projets de cet espace.`}
           confirmLabel="Retirer"
           onConfirm={handleDelete}
           onClose={() => setToDelete(null)}

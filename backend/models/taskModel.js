@@ -1,32 +1,54 @@
-// models/taskModel.js
 const db = require('../config/db');
 
-// Créer une nouvelle tâche
-const createTask = async (title, description, status, priority, projectId, assignedTo, dueDate) => {
+const createTask = async (
+  title,
+  description,
+  status,
+  priority,
+  projectId,
+  assignedTo,
+  dueDate,
+  workspaceId = null
+) => {
   const query = `
-    INSERT INTO tasks (title, description, status, priority, project_id, assigned_to, due_date)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO tasks (title, description, status, priority, project_id, assigned_to, due_date, workspace_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *;
   `;
-  const values = [title, description, status || 'À faire', priority || 'Moyenne', projectId, assignedTo, dueDate];
+  const values = [
+    title,
+    description,
+    status || 'À faire',
+    priority || 'Moyenne',
+    projectId,
+    assignedTo,
+    dueDate,
+    workspaceId,
+  ];
   const { rows } = await db.query(query, values);
   return rows[0];
 };
 
-// Récupérer toutes les tâches d'un projet
-const findTasksByProject = async (projectId) => {
+const findTasksByProject = async (projectId, workspaceId = null) => {
+  const values = [projectId];
+  let workspaceClause = '';
+  if (workspaceId) {
+    values.push(workspaceId);
+    workspaceClause = ` AND (t.workspace_id = $${values.length} OR (t.workspace_id IS NULL AND p.workspace_id = $${values.length}))`;
+  }
+
   const query = `
     SELECT t.*, u.name AS assigned_to_name, u.email AS assigned_to_email
     FROM tasks t
     LEFT JOIN users u ON t.assigned_to = u.id
-    WHERE t.project_id = $1
+    LEFT JOIN projects p ON t.project_id = p.id
+    WHERE t.project_id = $1${workspaceClause}
     ORDER BY t.created_at DESC;
   `;
-  const { rows } = await db.query(query, [projectId]);
+  const { rows } = await db.query(query, values);
   return rows;
 };
 
-// Mettre à jour le statut d'une tâche (drag & drop Kanban)
 const updateTaskStatus = async (taskId, status, projectId) => {
   const query = `
     UPDATE tasks
@@ -38,7 +60,6 @@ const updateTaskStatus = async (taskId, status, projectId) => {
   return rows[0];
 };
 
-// Mettre à jour les champs fournis d'une tâche (permet d'effacer due_date)
 const updateTask = async (taskId, updates, projectId) => {
   const mapping = {
     title: 'title',
@@ -78,15 +99,20 @@ const updateTask = async (taskId, updates, projectId) => {
   return rows[0];
 };
 
-// Supprimer une tâche
 const deleteTask = async (taskId, projectId) => {
   const query = 'DELETE FROM tasks WHERE id = $1 AND project_id = $2 RETURNING *;';
   const { rows } = await db.query(query, [taskId, projectId]);
   return rows[0];
 };
 
-// Récupérer toutes les tâches (vue globale, tous projets confondus)
-const findAllTasks = async () => {
+const findAllTasks = async (workspaceId = null) => {
+  const values = [];
+  let whereClause = '';
+  if (workspaceId) {
+    values.push(workspaceId);
+    whereClause = `WHERE (t.workspace_id = $1 OR (t.workspace_id IS NULL AND p.workspace_id = $1))`;
+  }
+
   const query = `
     SELECT t.*,
            u.name AS assigned_to_name,
@@ -95,14 +121,21 @@ const findAllTasks = async () => {
     FROM tasks t
     LEFT JOIN users u ON t.assigned_to = u.id
     LEFT JOIN projects p ON t.project_id = p.id
+    ${whereClause}
     ORDER BY t.created_at DESC;
   `;
-  const { rows } = await db.query(query);
+  const { rows } = await db.query(query, values);
   return rows;
 };
 
-// Récupérer une tâche par son identifiant (vue globale)
-const findTaskById = async (taskId) => {
+const findTaskById = async (taskId, workspaceId = null) => {
+  const values = [taskId];
+  let workspaceClause = '';
+  if (workspaceId) {
+    values.push(workspaceId);
+    workspaceClause = ` AND (t.workspace_id = $2 OR (t.workspace_id IS NULL AND p.workspace_id = $2))`;
+  }
+
   const query = `
     SELECT t.*,
            u.name AS assigned_to_name,
@@ -111,9 +144,9 @@ const findTaskById = async (taskId) => {
     FROM tasks t
     LEFT JOIN users u ON t.assigned_to = u.id
     LEFT JOIN projects p ON t.project_id = p.id
-    WHERE t.id = $1;
+    WHERE t.id = $1${workspaceClause};
   `;
-  const { rows } = await db.query(query, [taskId]);
+  const { rows } = await db.query(query, values);
   return rows[0];
 };
 

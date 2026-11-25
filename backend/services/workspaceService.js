@@ -1,5 +1,6 @@
 // services/workspaceService.js
 const workspaceModel = require('../models/workspaceModel');
+const userModel = require('../models/userModel');
 
 const ALLOWED_MEMBER_ROLES = ['admin', 'manager', 'member'];
 const ALLOWED_ALL_ROLES = ['owner', 'admin', 'manager', 'member'];
@@ -61,6 +62,29 @@ const getWorkspaceById = async (workspaceId, userId) => {
   return workspace;
 };
 
+const resolveActiveWorkspace = async (userId, requestedId = null) => {
+  const workspaces = await workspaceModel.findWorkspacesByUserId(userId);
+  const requested = requestedId ? Number(requestedId) : null;
+
+  if (requested) {
+    const found = workspaces.find((workspace) => Number(workspace.id) === requested);
+    if (!found) {
+      throw httpError("Accès refusé : vous n'êtes pas membre de ce workspace.", 403);
+    }
+    return found;
+  }
+
+  if (workspaces.length > 0) return workspaces[0];
+
+  const creator = await userModel.findUserById(userId);
+  return await createWorkspace(
+    `Espace de ${creator?.name || 'NyAsako'}`,
+    null,
+    userId,
+    'Espace de travail par défaut.'
+  );
+};
+
 /**
  * Retourne le workspace possédé par l'utilisateur, ou le crée s'il n'en a pas.
  * Utilisé notamment lors de la création d'un projet sans workspace explicite.
@@ -94,7 +118,11 @@ const updateWorkspace = async (workspaceId, payload = {}) => {
   }
 
   if (payload.description !== undefined) {
-    cleanPayload.description = payload.description || null;
+    const description =
+      payload.description === null || String(payload.description).trim() === ''
+        ? null
+        : String(payload.description).trim();
+    cleanPayload.description = description;
   }
 
   try {
@@ -148,7 +176,8 @@ const addMember = async (workspaceId, { email, userId, role = 'member' } = {}) =
     throw httpError('Le rôle du propriétaire ne peut pas être modifié ici.', 403);
   }
 
-  return await workspaceModel.upsertMember(workspaceId, targetUser.id, role);
+  await workspaceModel.upsertMember(workspaceId, targetUser.id, role);
+  return await workspaceModel.findMemberDetails(workspaceId, targetUser.id);
 };
 
 const updateMemberRole = async (workspaceId, targetUserId, newRole, actorRole) => {
@@ -172,7 +201,8 @@ const updateMemberRole = async (workspaceId, targetUserId, newRole, actorRole) =
     }
   }
 
-  return await workspaceModel.updateMemberRole(workspaceId, targetUserId, newRole);
+  await workspaceModel.updateMemberRole(workspaceId, targetUserId, newRole);
+  return await workspaceModel.findMemberDetails(workspaceId, targetUserId);
 };
 
 const removeMember = async (workspaceId, targetUserId) => {
@@ -219,6 +249,7 @@ module.exports = {
   createWorkspace,
   getUserWorkspaces,
   getWorkspaceById,
+  resolveActiveWorkspace,
   getOrCreateDefaultWorkspace,
   updateWorkspace,
   deleteWorkspace,

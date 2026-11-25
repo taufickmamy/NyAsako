@@ -1,6 +1,7 @@
 // services/userService.js
 const bcrypt = require('bcrypt');
 const userModel = require('../models/userModel');
+const { findOrCreateDefaultWorkspace } = require('../config/ensureSchema');
 
 const SALT_ROUNDS = 10;
 const ROLES = ['Administrateur', 'Manager', 'Développeur'];
@@ -51,7 +52,9 @@ const createUser = async (payload, actor) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-  return await userModel.createUser(String(name).trim(), normalizedEmail, hashedPassword, role);
+  const user = await userModel.createUser(String(name).trim(), normalizedEmail, hashedPassword, role);
+  await findOrCreateDefaultWorkspace(user.id, user.name);
+  return user;
 };
 
 const updateUserById = async (id, payload, actor) => {

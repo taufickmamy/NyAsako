@@ -49,9 +49,7 @@ export default function App() {
           <Route path="/settings/profile" element={<Profile />} />
           <Route path="/settings/workspace" element={<WorkspaceSettings />} />
 
-          <Route element={<RoleRoute roles={["Administrateur", "Manager"]} />}>
-            <Route path="/team" element={<TeamMembers />} />
-          </Route>
+          <Route path="/team" element={<TeamMembers />} />
 
           <Route element={<RoleRoute roles={["Administrateur"]} />}>
             <Route path="/admin/users" element={<AdminUsers />} />

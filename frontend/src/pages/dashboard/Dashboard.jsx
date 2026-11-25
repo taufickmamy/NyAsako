@@ -326,7 +326,7 @@ export default function Dashboard() {
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400">
                 <p className="font-semibold text-brand-900 dark:text-white">{members.length} membre(s)</p>
-                <p>dans {workspace.name}</p>
+                <p>dans {workspace?.name}</p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-1.5">

@@ -60,18 +60,35 @@ const findWorkspaceById = async (workspaceId, userId) => {
   return rows[0] || null;
 };
 
-const updateWorkspaceById = async (workspaceId, { name, slug, description }) => {
+const updateWorkspaceById = async (workspaceId, payload = {}) => {
+  const mapping = {
+    name: 'name',
+    slug: 'slug',
+    description: 'description',
+  };
+  const values = [workspaceId];
+  const assignments = [];
+
+  Object.entries(mapping).forEach(([key, column]) => {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      values.push(payload[key]);
+      assignments.push(`${column} = $${values.length}`);
+    }
+  });
+
+  if (assignments.length === 0) {
+    const { rows: current } = await db.query('SELECT * FROM workspaces WHERE id = $1;', [workspaceId]);
+    return current[0] || null;
+  }
+
+  assignments.push('updated_at = CURRENT_TIMESTAMP');
   const query = `
     UPDATE workspaces
-    SET
-      name = COALESCE($2, name),
-      slug = COALESCE($3, slug),
-      description = COALESCE($4, description),
-      updated_at = CURRENT_TIMESTAMP
+    SET ${assignments.join(', ')}
     WHERE id = $1
     RETURNING *;
   `;
-  const { rows } = await db.query(query, [workspaceId, name, slug, description]);
+  const { rows } = await db.query(query, values);
   return rows[0] || null;
 };
 
@@ -125,6 +142,19 @@ const upsertMember = async (workspaceId, userId, role) => {
   `;
   const { rows } = await db.query(query, [workspaceId, userId, role]);
   return rows[0];
+};
+
+const findMemberDetails = async (workspaceId, userId) => {
+  const query = `
+    SELECT wm.id, wm.workspace_id, wm.user_id, wm.role, wm.joined_at,
+           u.name, u.email
+    FROM workspace_members wm
+    INNER JOIN users u ON u.id = wm.user_id
+    WHERE wm.workspace_id = $1 AND wm.user_id = $2
+    LIMIT 1;
+  `;
+  const { rows } = await db.query(query, [workspaceId, userId]);
+  return rows[0] || null;
 };
 
 const findMember = async (workspaceId, userId) => {
@@ -188,6 +218,7 @@ module.exports = {
   findMembersByWorkspaceId,
   findUserByEmail,
   upsertMember,
+  findMemberDetails,
   findMember,
   countOwners,
   countMembers,

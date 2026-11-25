@@ -10,7 +10,7 @@ export default function MemberFormModal({
   roleOptions,
   title = "Ajouter un membre",
   submitLabel = "Ajouter",
-  requirePassword = true,
+  mode = "user",
   onSubmit,
   onClose,
 }) {
@@ -18,7 +18,7 @@ export default function MemberFormModal({
     name: initial?.name ?? "",
     email: initial?.email ?? "",
     password: "",
-    role: initial?.role ?? roleOptions?.[0]?.value ?? "Développeur",
+    role: initial?.role ?? roleOptions?.[0]?.value ?? "member",
   });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -30,10 +30,12 @@ export default function MemberFormModal({
 
   function validate() {
     const found = {};
-    if (!form.name.trim()) found.name = "Le nom est obligatoire.";
-    if (!form.email.trim()) found.email = "L'adresse e-mail est obligatoire.";
-    else if (!/^\S+@\S+\.\S+$/.test(form.email)) found.email = "Adresse e-mail invalide.";
-    if (requirePassword) {
+    if (mode === "user" && !form.name.trim()) found.name = "Le nom est obligatoire.";
+    if (mode !== "role") {
+      if (!form.email.trim()) found.email = "L'adresse e-mail est obligatoire.";
+      else if (!/^\S+@\S+\.\S+$/.test(form.email)) found.email = "Adresse e-mail invalide.";
+    }
+    if (mode === "user") {
       if (!form.password) found.password = "Le mot de passe est obligatoire.";
       else if (form.password.length < 8) found.password = "Au moins 8 caractères.";
     }
@@ -50,12 +52,15 @@ export default function MemberFormModal({
 
     setLoading(true);
     try {
-      const payload = {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        role: form.role,
-      };
-      if (requirePassword) payload.password = form.password;
+      const payload = { role: form.role };
+      if (mode === "user") {
+        payload.name = form.name.trim();
+        payload.email = form.email.trim();
+        payload.password = form.password;
+      }
+      if (mode === "workspace") {
+        payload.email = form.email.trim();
+      }
       await onSubmit(payload);
     } catch (err) {
       setServerError(getErrorMessage(err));
@@ -85,30 +90,34 @@ export default function MemberFormModal({
           </p>
         )}
 
-        <Input
-          label="Nom complet"
-          id="member-name"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          error={errors.name}
-          placeholder="Ex. Hery Rakoto"
-          required
-        />
+        {mode === "user" && (
+          <Input
+            label="Nom complet"
+            id="member-name"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            error={errors.name}
+            placeholder="Ex. Hery Rakoto"
+            required
+          />
+        )}
 
-        <Input
-          label="Adresse e-mail"
-          id="member-email"
-          name="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          error={errors.email}
-          placeholder="membre@entreprise.com"
-          required
-        />
+        {mode !== "role" && (
+          <Input
+            label={mode === "workspace" ? "E-mail de l'utilisateur" : "Adresse e-mail"}
+            id="member-email"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            error={errors.email}
+            placeholder="membre@entreprise.com"
+            required
+          />
+        )}
 
-        {requirePassword && (
+        {mode === "user" && (
           <Input
             label="Mot de passe temporaire"
             id="member-password"
@@ -124,7 +133,7 @@ export default function MemberFormModal({
         )}
 
         <Select
-          label="Rôle"
+          label="Rôle dans l'espace"
           id="member-role"
           name="role"
           value={form.role}
