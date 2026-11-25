@@ -15,7 +15,7 @@ const createNewProject = async (title, description, createdBy, workspaceId = nul
   let targetWorkspaceId = workspaceId;
 
   if (targetWorkspaceId) {
-    await workspaceService.getWorkspace(targetWorkspaceId, createdBy);
+    await workspaceService.getWorkspaceById(targetWorkspaceId, createdBy);
   } else {
     const creator = await userModel.findUserById(createdBy);
     const workspace = await workspaceService.getOrCreateDefaultWorkspace(
@@ -43,7 +43,7 @@ const createNewProject = async (title, description, createdBy, workspaceId = nul
 
 const getAllProjects = async (userId, workspaceId = null) => {
   if (workspaceId) {
-    await workspaceService.getWorkspace(workspaceId, userId);
+    await workspaceService.getWorkspaceById(workspaceId, userId);
     return await projectModel.findAllProjects(workspaceId);
   }
 
@@ -62,7 +62,7 @@ const getProjectById = async (id) => {
 
 const editProject = async (id, title, description, userId, workspaceId = null) => {
   if (workspaceId) {
-    await workspaceService.getWorkspace(workspaceId, userId);
+    await workspaceService.getWorkspaceById(workspaceId, userId);
   }
 
   const updatedProject = await projectModel.updateProject(id, title, description, workspaceId);

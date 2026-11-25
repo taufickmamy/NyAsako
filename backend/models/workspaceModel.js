@@ -1,139 +1,171 @@
 // models/workspaceModel.js
 const db = require('../config/db');
 
-const WORKSPACE_FIELDS = `
-  w.id,
-  w.name,
-  w.description,
-  w.owner_id,
-  w.created_at,
-  w.updated_at,
-  owner.name AS owner_name,
-  (SELECT COUNT(*)::int FROM workspace_members wm WHERE wm.workspace_id = w.id) AS members_count,
-  (SELECT COUNT(*)::int FROM projects p WHERE p.workspace_id = w.id) AS projects_count
-`;
+const createWorkspaceWithOwner = async (name, slug, ownerId, description = null) => {
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
 
-const createWorkspace = async (name, description, ownerId) => {
-  const query = `
-    INSERT INTO workspaces (name, description, owner_id)
-    VALUES ($1, $2, $3)
-    RETURNING *;
-  `;
-  const { rows } = await db.query(query, [name, description, ownerId]);
-  return rows[0];
+    const insertWorkspaceQuery = `
+      INSERT INTO workspaces (name, slug, description, owner_id)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *;
+    `;
+    const { rows: wsRows } = await client.query(insertWorkspaceQuery, [
+      name,
+      slug,
+      description || null,
+      ownerId,
+    ]);
+    const workspace = wsRows[0];
+
+    const insertMemberQuery = `
+      INSERT INTO workspace_members (workspace_id, user_id, role)
+      VALUES ($1, $2, 'owner')
+      RETURNING *;
+    `;
+    await client.query(insertMemberQuery, [workspace.id, ownerId]);
+
+    await client.query('COMMIT');
+    return workspace;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
-const findWorkspaceById = async (id) => {
+const findWorkspacesByUserId = async (userId) => {
   const query = `
-    SELECT ${WORKSPACE_FIELDS}
+    SELECT w.*, wm.role AS my_role
     FROM workspaces w
-    LEFT JOIN users owner ON w.owner_id = owner.id
-    WHERE w.id = $1;
-  `;
-  const { rows } = await db.query(query, [id]);
-  return rows[0];
-};
-
-const findWorkspacesByUser = async (userId) => {
-  const query = `
-    SELECT ${WORKSPACE_FIELDS}, m.role AS member_role
-    FROM workspaces w
-    JOIN workspace_members m ON m.workspace_id = w.id
-    LEFT JOIN users owner ON w.owner_id = owner.id
-    WHERE m.user_id = $1
+    INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+    WHERE wm.user_id = $1
     ORDER BY w.created_at DESC;
   `;
   const { rows } = await db.query(query, [userId]);
   return rows;
 };
 
-const updateWorkspace = async (id, name, description) => {
+const findWorkspaceById = async (workspaceId, userId) => {
+  const query = `
+    SELECT w.*, wm.role AS my_role
+    FROM workspaces w
+    INNER JOIN workspace_members wm ON wm.workspace_id = w.id
+    WHERE w.id = $1 AND wm.user_id = $2
+    LIMIT 1;
+  `;
+  const { rows } = await db.query(query, [workspaceId, userId]);
+  return rows[0] || null;
+};
+
+const updateWorkspaceById = async (workspaceId, { name, slug, description }) => {
   const query = `
     UPDATE workspaces
-    SET name = COALESCE($1, name),
-        description = COALESCE($2, description),
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = $3
+    SET
+      name = COALESCE($2, name),
+      slug = COALESCE($3, slug),
+      description = COALESCE($4, description),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
     RETURNING *;
   `;
-  const { rows } = await db.query(query, [name, description, id]);
-  return rows[0];
+  const { rows } = await db.query(query, [workspaceId, name, slug, description]);
+  return rows[0] || null;
 };
 
-const deleteWorkspace = async (id) => {
-  const query = 'DELETE FROM workspaces WHERE id = $1 RETURNING *;';
-  const { rows } = await db.query(query, [id]);
-  return rows[0];
+const deleteWorkspaceById = async (workspaceId) => {
+  const query = `
+    DELETE FROM workspaces
+    WHERE id = $1
+    RETURNING *;
+  `;
+  const { rows } = await db.query(query, [workspaceId]);
+  return rows[0] || null;
 };
 
-const findMembership = async (workspaceId, userId) => {
+const findProjectsByWorkspaceId = async (workspaceId) => {
   const query = `
     SELECT *
-    FROM workspace_members
-    WHERE workspace_id = $1 AND user_id = $2;
-  `;
-  const { rows } = await db.query(query, [workspaceId, userId]);
-  return rows[0];
-};
-
-const findMember = async (workspaceId, userId) => {
-  const query = `
-    SELECT
-      m.workspace_id,
-      m.user_id,
-      m.role AS workspace_role,
-      m.joined_at,
-      u.name,
-      u.email,
-      u.role AS global_role
-    FROM workspace_members m
-    JOIN users u ON u.id = m.user_id
-    WHERE m.workspace_id = $1 AND m.user_id = $2;
-  `;
-  const { rows } = await db.query(query, [workspaceId, userId]);
-  return rows[0];
-};
-
-const findMembersByWorkspace = async (workspaceId) => {
-  const query = `
-    SELECT
-      m.workspace_id,
-      m.user_id,
-      m.role AS workspace_role,
-      m.joined_at,
-      u.name,
-      u.email,
-      u.role AS global_role
-    FROM workspace_members m
-    JOIN users u ON u.id = m.user_id
-    WHERE m.workspace_id = $1
-    ORDER BY
-      CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END,
-      u.name ASC;
+    FROM projects
+    WHERE workspace_id = $1
+    ORDER BY id DESC;
   `;
   const { rows } = await db.query(query, [workspaceId]);
   return rows;
 };
 
-const addMember = async (workspaceId, userId, role = 'member') => {
+const findMembersByWorkspaceId = async (workspaceId) => {
+  const query = `
+    SELECT wm.id, wm.workspace_id, wm.user_id, wm.role, wm.joined_at,
+           u.name, u.email
+    FROM workspace_members wm
+    INNER JOIN users u ON u.id = wm.user_id
+    WHERE wm.workspace_id = $1
+    ORDER BY wm.joined_at ASC;
+  `;
+  const { rows } = await db.query(query, [workspaceId]);
+  return rows;
+};
+
+const findUserByEmail = async (email) => {
+  const query = 'SELECT id, name, email FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1;';
+  const { rows } = await db.query(query, [email]);
+  return rows[0] || null;
+};
+
+const upsertMember = async (workspaceId, userId, role) => {
   const query = `
     INSERT INTO workspace_members (workspace_id, user_id, role)
     VALUES ($1, $2, $3)
+    ON CONFLICT (workspace_id, user_id)
+    DO UPDATE SET role = EXCLUDED.role
     RETURNING *;
   `;
   const { rows } = await db.query(query, [workspaceId, userId, role]);
   return rows[0];
 };
 
+const findMember = async (workspaceId, userId) => {
+  const query = `
+    SELECT * FROM workspace_members
+    WHERE workspace_id = $1 AND user_id = $2
+    LIMIT 1;
+  `;
+  const { rows } = await db.query(query, [workspaceId, userId]);
+  return rows[0] || null;
+};
+
+const countOwners = async (workspaceId) => {
+  const query = `
+    SELECT COUNT(*)::int AS total
+    FROM workspace_members
+    WHERE workspace_id = $1 AND role = 'owner';
+  `;
+  const { rows } = await db.query(query, [workspaceId]);
+  return rows[0].total;
+};
+
+const countMembers = async (workspaceId) => {
+  const query = `
+    SELECT COUNT(*)::int AS total
+    FROM workspace_members
+    WHERE workspace_id = $1;
+  `;
+  const { rows } = await db.query(query, [workspaceId]);
+  return rows[0].total;
+};
+
 const updateMemberRole = async (workspaceId, userId, role) => {
   const query = `
     UPDATE workspace_members
-    SET role = $1
-    WHERE workspace_id = $2 AND user_id = $3
+    SET role = $3
+    WHERE workspace_id = $1 AND user_id = $2
     RETURNING *;
   `;
-  const { rows } = await db.query(query, [role, workspaceId, userId]);
-  return rows[0];
+  const { rows } = await db.query(query, [workspaceId, userId, role]);
+  return rows[0] || null;
 };
 
 const removeMember = async (workspaceId, userId) => {
@@ -143,19 +175,22 @@ const removeMember = async (workspaceId, userId) => {
     RETURNING *;
   `;
   const { rows } = await db.query(query, [workspaceId, userId]);
-  return rows[0];
+  return rows[0] || null;
 };
 
 module.exports = {
-  createWorkspace,
+  createWorkspaceWithOwner,
+  findWorkspacesByUserId,
   findWorkspaceById,
-  findWorkspacesByUser,
-  updateWorkspace,
-  deleteWorkspace,
-  findMembership,
+  updateWorkspaceById,
+  deleteWorkspaceById,
+  findProjectsByWorkspaceId,
+  findMembersByWorkspaceId,
+  findUserByEmail,
+  upsertMember,
   findMember,
-  findMembersByWorkspace,
-  addMember,
+  countOwners,
+  countMembers,
   updateMemberRole,
   removeMember,
 };

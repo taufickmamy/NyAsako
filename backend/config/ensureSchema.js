@@ -9,39 +9,84 @@ const createWorkspacesSchema = async () => {
   await db.query(`
     CREATE TABLE IF NOT EXISTS workspaces (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(150) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      slug VARCHAR(255) NOT NULL,
       description TEXT,
-      owner_id INT REFERENCES users(id) ON DELETE SET NULL,
+      owner_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
+  // Compatibilité avec les bases créées avant l'ajout du slug.
+  await db.query(`
+    ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS slug VARCHAR(255);
+  `);
+  await db.query(`
+    ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS description TEXT;
+  `);
+  await db.query(`
+    UPDATE workspaces SET slug = 'workspace-' || id WHERE slug IS NULL;
+  `);
+  await db.query(`
+    ALTER TABLE workspaces ALTER COLUMN slug SET NOT NULL;
+  `);
+  await db.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_workspaces_slug ON workspaces(slug);
+  `);
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS workspace_members (
+      id SERIAL PRIMARY KEY,
       workspace_id INT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      role VARCHAR(20) NOT NULL DEFAULT 'member'
-        CHECK (role IN ('owner', 'admin', 'member')),
+      role VARCHAR(30) NOT NULL DEFAULT 'member'
+        CHECK (role IN ('owner', 'admin', 'manager', 'member')),
       joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (workspace_id, user_id)
+      UNIQUE (workspace_id, user_id)
     );
   `);
 
-  // Relation projet <-> workspace (nullable pour rester compatible avec l'existant).
+  // Compatibilité avec l'ancienne table sans colonne id / sans rôle manager.
   await db.query(`
-    ALTER TABLE projects
-    ADD COLUMN IF NOT EXISTS workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE;
+    ALTER TABLE workspace_members ADD COLUMN IF NOT EXISTS id SERIAL;
+  `);
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'workspace_members_role_check'
+          AND conrelid = 'workspace_members'::regclass
+      ) THEN
+        ALTER TABLE workspace_members DROP CONSTRAINT workspace_members_role_check;
+      END IF;
+    END
+    $$;
+  `);
+  await db.query(`
+    ALTER TABLE workspace_members
+    ADD CONSTRAINT workspace_members_role_check
+    CHECK (role IN ('owner', 'admin', 'manager', 'member'));
   `);
 
+  for (const table of ['projects', 'tasks', 'activities', 'notifications']) {
+    await db.query(`
+      ALTER TABLE ${table}
+      ADD COLUMN IF NOT EXISTS workspace_id INT REFERENCES workspaces(id) ON DELETE CASCADE;
+    `);
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS idx_${table}_workspace_id ON ${table}(workspace_id);
+    `);
+  }
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace_id
+    ON workspace_members(workspace_id);
+  `);
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id
     ON workspace_members(user_id);
-  `);
-
-  await db.query(`
-    CREATE INDEX IF NOT EXISTS idx_projects_workspace_id
-    ON projects(workspace_id);
   `);
 };
 
@@ -65,13 +110,14 @@ const findOrCreateDefaultWorkspace = async (userId, userName) => {
   if (existing[0]) return existing[0].id;
 
   const name = `Espace de ${userName || 'NyAsako'}`;
+  const slug = `espace-${userId}-${Date.now()}`;
   const { rows: created } = await db.query(
     `
-      INSERT INTO workspaces (name, description, owner_id)
-      VALUES ($1, $2, $3)
+      INSERT INTO workspaces (name, slug, description, owner_id)
+      VALUES ($1, $2, $3, $4)
       RETURNING id;
     `,
-    [name, 'Espace de travail par défaut.', userId]
+    [name, slug, 'Espace de travail par défaut.', userId]
   );
 
   const workspaceId = created[0].id;
